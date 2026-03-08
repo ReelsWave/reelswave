@@ -121,6 +121,13 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     }
 
     const payload = JSON.parse(req.body);
+
+    // DEBUGGING LOG
+    console.log("=== LEMON SQUEEZY WEBHOOK RECEIVED ===");
+    console.log("Event:", payload.meta?.event_name);
+    console.log("Custom Data:", payload.meta?.custom_data);
+    console.log("Customer ID:", payload.data?.attributes?.customer_id);
+    console.log("======================================");
     const eventName = payload.meta?.event_name;
     const customData = payload.meta?.custom_data;
 
