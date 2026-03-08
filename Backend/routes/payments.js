@@ -19,21 +19,21 @@ const PLANS = {
         name: 'Basic',
         monthlyVariantId: process.env.LS_BASIC_VARIANT_ID,
         yearlyVariantId: process.env.LS_BASIC_YEARLY_VARIANT_ID,
-        creditsPerWeek: 3,
+        credits: 12, // 3 per week * 4
         price: 9
     },
     pro: {
         name: 'Pro',
         monthlyVariantId: process.env.LS_PRO_VARIANT_ID,
         yearlyVariantId: process.env.LS_PRO_YEARLY_VARIANT_ID,
-        creditsPerWeek: 7, // 1 per day
+        credits: 30, // 1 per day
         price: 29
     },
     dedicated: {
         name: 'Dedicated',
         monthlyVariantId: process.env.LS_DEDICATED_VARIANT_ID,
         yearlyVariantId: process.env.LS_DEDICATED_YEARLY_VARIANT_ID,
-        creditsPerWeek: 21, // 3 per day
+        credits: 90, // 3 per day
         price: 59
     }
 };
@@ -142,7 +142,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
                     .from('profiles')
                     .update({
                         plan: planId,
-                        credits: plan.creditsPerWeek,
+                        credits: plan.credits,
                         ls_customer_id: String(payload.data.attributes.customer_id),
                         ls_subscription_id: String(payload.data.id)
                     })
@@ -166,7 +166,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
                 if (plan) {
                     await supabase
                         .from('profiles')
-                        .update({ credits: plan.creditsPerWeek })
+                        .update({ credits: plan.credits })
                         .eq('id', profile.id);
                 }
             }
