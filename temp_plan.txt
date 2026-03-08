@@ -1,0 +1,1392 @@
+I now have a comprehensive understanding of the entire codebase. Let me compile the complete implementation plan.
+
+---
+
+# Autopilot Feature - Complete Implementation Plan for ReelsWave
+
+## Codebase Summary
+
+The project is a clean, small codebase with a clear separation:
+- **Backend**: Express 5 server (ESM modules), 4 services (scriptGenerator, voiceGenerator, stockFetcher, videoAssembler), 2 route files (videos, payments), 1 auth middleware. Uses an in-memory job queue (Map + Array) for sequential video processing. `googleapis` is already a dependency (^171.4.0) but unused currently.
+- **Frontend**: React 19 + Vite 7 + React Router 7, uses plain CSS (no Tailwind), has `lucide-react` for icons. Pages: Landing, Login, Signup, Dashboard, Create (5-step wizard). Dark premium theme with CSS variables in `index.css`.
+- **Database**: Supabase with `profiles` table (id, plan, credits, ls_*) and `videos` table (id, user_id, title, topic, niche, tone, script, video_url, storage_path, status, hashtags, created_at).
+- **Auth**: Supabase JWT validation via service-role key on the backend. Frontend uses anon key.
+
+---
+
+## Phase 1: Database Schema
+
+Three new Supabase tables are needed. Run these as SQL migrations in the Supabase dashboard.
+
+### Table: `social_connections`
+
+```sql
+CREATE TABLE social_connections (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    platform TEXT NOT NULL CHECK (platform IN ('youtube', 'tiktok', 'instagram')),
+    
+    -- OAuth tokens (encrypted at rest by Supabase)
+    access_token TEXT NOT NULL,
+    refresh_token TEXT,
+    token_expires_at TIMESTAMPTZ,
+    
+    -- Platform-specific account info
+    platform_user_id TEXT,          -- e.g., YouTube channel ID, TikTok open_id, IG user ID
+    platform_username TEXT,         -- Display name for the UI
+    platform_avatar_url TEXT,       -- Profile picture URL
+    
+    -- Metadata
+    scopes TEXT[],                  -- Granted OAuth scopes
+    is_valid BOOLEAN DEFAULT true,  -- Set to false if token refresh fails permanently
+    
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    
+    -- One connection per platform per user
+    UNIQUE(user_id, platform)
+);
+
+-- RLS policies
+ALTER TABLE social_connections ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own connections"
+    ON social_connections FOR SELECT
+    USING (auth.uid() = user_id);
+
+-- Backend uses service_role key so RLS is bypassed for writes,
+-- but add policies for safety if anon key is ever used
+CREATE POLICY "Users can delete own connections"
+    ON social_connections FOR DELETE
+    USING (auth.uid() = user_id);
+
+CREATE INDEX idx_social_connections_user ON social_connections(user_id);
+```
+
+### Table: `schedules`
+
+```sql
+CREATE TABLE schedules (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    
+    -- Content configuration
+    niche TEXT NOT NULL,
+    topic_theme TEXT NOT NULL,       -- Broad theme, e.g., "startup failure stories"
+    tone TEXT NOT NULL DEFAULT 'energetic',
+    style TEXT NOT NULL,             -- Visual style ID from STYLES array
+    style_prompt TEXT NOT NULL,      -- Resolved style prompt string
+    voice_id TEXT,                   -- ElevenLabs voice ID (null = default Adam)
+    duration INTEGER NOT NULL DEFAULT 60 CHECK (duration IN (30, 60, 90)),
+    
+    -- Scheduling
+    upload_time TIME NOT NULL,       -- e.g., '14:30:00' in user's local time
+    timezone TEXT NOT NULL DEFAULT 'UTC',  -- IANA timezone, e.g., 'America/New_York'
+    target_platforms TEXT[] NOT NULL DEFAULT '{}',  -- ['youtube', 'tiktok', 'instagram']
+    
+    -- State management
+    is_active BOOLEAN DEFAULT true,
+    last_run_at TIMESTAMPTZ,
+    next_run_at TIMESTAMPTZ,         -- Pre-computed next trigger time in UTC
+    consecutive_failures INTEGER DEFAULT 0,
+    last_error TEXT,
+    
+    -- Topic history to prevent repetition
+    generated_angles JSONB DEFAULT '[]'::jsonb,  -- Array of previously generated angle strings
+    
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE schedules ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage own schedules"
+    ON schedules FOR ALL
+    USING (auth.uid() = user_id);
+
+CREATE INDEX idx_schedules_next_run ON schedules(next_run_at) WHERE is_active = true;
+CREATE INDEX idx_schedules_user ON schedules(user_id);
+```
+
+### Table: `upload_logs`
+
+```sql
+CREATE TABLE upload_logs (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    video_id UUID REFERENCES videos(id) ON DELETE SET NULL,
+    schedule_id UUID REFERENCES schedules(id) ON DELETE SET NULL,
+    
+    platform TEXT NOT NULL CHECK (platform IN ('youtube', 'tiktok', 'instagram')),
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'uploading', 'completed', 'failed')),
+    
+    -- Platform response data
+    platform_video_id TEXT,          -- YouTube video ID, TikTok publish_id, IG media ID
+    platform_url TEXT,               -- Direct URL to the published video
+    error_message TEXT,
+    
+    -- Metadata
+    title TEXT,
+    description TEXT,
+    hashtags TEXT[],
+    
+    created_at TIMESTAMPTZ DEFAULT now(),
+    completed_at TIMESTAMPTZ
+);
+
+ALTER TABLE upload_logs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own upload logs"
+    ON upload_logs FOR SELECT
+    USING (auth.uid() = user_id);
+
+CREATE INDEX idx_upload_logs_user ON upload_logs(user_id);
+CREATE INDEX idx_upload_logs_schedule ON upload_logs(schedule_id);
+CREATE INDEX idx_upload_logs_video ON upload_logs(video_id);
+```
+
+### Alter existing `videos` table
+
+Add a column to link autopilot-generated videos back to their schedule:
+
+```sql
+ALTER TABLE videos ADD COLUMN schedule_id UUID REFERENCES schedules(id) ON DELETE SET NULL;
+ALTER TABLE videos ADD COLUMN is_autopilot BOOLEAN DEFAULT false;
+```
+
+---
+
+## Phase 2: Backend - OAuth Routes
+
+Create new file: `Backend/routes/social.js`
+
+This file handles OAuth flow for all three platforms. The pattern is: frontend opens a popup/redirect to `/api/social/{platform}/connect`, the backend redirects to the platform's OAuth page, and the callback stores the tokens.
+
+### Environment Variables to Add
+
+Add these to `Backend/.env` and `Backend/.env.example`:
+
+```
+# YouTube OAuth
+YOUTUBE_CLIENT_ID=your_google_oauth_client_id
+YOUTUBE_CLIENT_SECRET=your_google_oauth_client_secret
+YOUTUBE_REDIRECT_URI=http://localhost:3001/api/social/youtube/callback
+
+# TikTok OAuth
+TIKTOK_CLIENT_KEY=your_tiktok_app_client_key
+TIKTOK_CLIENT_SECRET=your_tiktok_app_client_secret
+TIKTOK_REDIRECT_URI=http://localhost:3001/api/social/tiktok/callback
+
+# Instagram / Meta OAuth
+INSTAGRAM_APP_ID=your_meta_app_id
+INSTAGRAM_APP_SECRET=your_meta_app_secret
+INSTAGRAM_REDIRECT_URI=http://localhost:3001/api/social/instagram/callback
+```
+
+### Route Structure (`Backend/routes/social.js`)
+
+```javascript
+import express from 'express';
+import { authMiddleware, supabase } from '../middleware/auth.js';
+import { google } from 'googleapis';
+import crypto from 'crypto';
+import dotenv from 'dotenv';
+dotenv.config();
+
+const router = express.Router();
+
+// ===== YOUTUBE =====
+
+// Stores ephemeral state -> userId mapping for OAuth CSRF protection
+const oauthStateMap = new Map();
+
+router.get('/youtube/connect', authMiddleware, (req, res) => { ... });
+// - Create a google.auth.OAuth2 client
+// - Generate a random `state` string, store userId against it in oauthStateMap
+// - Build authUrl with scopes: ['https://www.googleapis.com/auth/youtube.upload',
+//   'https://www.googleapis.com/auth/youtube.readonly']
+// - Redirect user to authUrl
+
+router.get('/youtube/callback', async (req, res) => { ... });
+// - Validate `state` from oauthStateMap to get userId
+// - Exchange `code` for tokens via oauth2Client.getToken(code)
+// - Fetch channel info via youtube.channels.list({ part: 'snippet', mine: true })
+// - Upsert into social_connections table
+// - Redirect to frontend: `${FRONTEND_URL}/autopilot?connected=youtube`
+
+// ===== TIKTOK =====
+
+router.get('/tiktok/connect', authMiddleware, (req, res) => { ... });
+// - Generate CSRF state, store in oauthStateMap
+// - Build TikTok auth URL:
+//   https://www.tiktok.com/v2/auth/authorize/?client_key=...&scope=video.publish,video.upload,user.info.basic
+//   &response_type=code&redirect_uri=...&state=...
+// - Redirect user
+
+router.get('/tiktok/callback', async (req, res) => { ... });
+// - Validate state
+// - Exchange code for tokens via POST https://open.tiktokapis.com/v2/oauth/token/
+//   body: { client_key, client_secret, code, grant_type: 'authorization_code', redirect_uri }
+// - Fetch user info via GET https://open.tiktokapis.com/v2/user/info/
+//   headers: { Authorization: 'Bearer <access_token>' }
+//   query: { fields: 'open_id,display_name,avatar_url' }
+// - Upsert into social_connections
+// - Redirect to frontend
+
+// ===== INSTAGRAM =====
+
+router.get('/instagram/connect', authMiddleware, (req, res) => { ... });
+// - Generate state
+// - Build Meta auth URL:
+//   https://www.facebook.com/v19.0/dialog/oauth?client_id=...
+//   &redirect_uri=...&scope=instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement
+//   &state=...&response_type=code
+// - Redirect user
+
+router.get('/instagram/callback', async (req, res) => { ... });
+// - Validate state
+// - Exchange code for short-lived token via POST https://graph.facebook.com/v19.0/oauth/access_token
+// - Exchange short-lived token for 60-day long-lived token via GET
+//   https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&...
+// - Find Instagram Business Account:
+//   1. GET /me/accounts -> get Facebook Pages
+//   2. For each page, GET /{page_id}?fields=instagram_business_account
+// - Upsert into social_connections with the long-lived token
+// - Redirect to frontend
+
+// ===== SHARED ENDPOINTS =====
+
+router.get('/connections', authMiddleware, async (req, res) => { ... });
+// - Query social_connections for req.user.id
+// - Return { connections: [...] } with tokens stripped (never send tokens to frontend)
+
+router.delete('/disconnect/:platform', authMiddleware, async (req, res) => { ... });
+// - Delete from social_connections where user_id and platform match
+// - Also deactivate any schedules that target this platform exclusively
+
+export default router;
+```
+
+### Token Refresh Utility (`Backend/services/tokenRefresher.js`)
+
+This is a helper module, not a route. It is called by the scheduler and upload services before each use.
+
+```javascript
+// Functions:
+
+export async function getValidToken(userId, platform) { ... }
+// - Fetch from social_connections
+// - Check if token_expires_at is within 5 minutes of now
+// - If expiring/expired, call refreshToken()
+// - If refresh fails, set is_valid = false and throw
+// - Return the valid access_token
+
+async function refreshYouTubeToken(connection) { ... }
+// - Use google.auth.OAuth2 with stored refresh_token
+// - oauth2Client.setCredentials({ refresh_token })
+// - Call oauth2Client.getAccessToken()
+// - Update social_connections with new access_token and token_expires_at
+
+async function refreshTikTokToken(connection) { ... }
+// - POST https://open.tiktokapis.com/v2/oauth/token/
+//   body: { client_key, client_secret, grant_type: 'refresh_token', refresh_token }
+// - Update social_connections
+
+async function refreshInstagramToken(connection) { ... }
+// - GET https://graph.instagram.com/refresh_access_token
+//   ?grant_type=ig_refresh_token&access_token=<current_token>
+// - Long-lived tokens must be refreshed before they expire (60 days)
+// - Update social_connections with new token and expires_at
+```
+
+### Register in `Backend/index.js`
+
+Add to `index.js`:
+```javascript
+import socialRoutes from './routes/social.js';
+// ...
+app.use('/api/social', socialRoutes);
+```
+
+---
+
+## Phase 3: Backend - Upload Services
+
+Three new service files, each with a single `upload()` function.
+
+### `Backend/services/youtubeUploader.js`
+
+```javascript
+import { google } from 'googleapis';
+import fs from 'fs';
+import { getValidToken } from './tokenRefresher.js';
+
+/**
+ * Upload a video to YouTube Shorts
+ * @param {Object} options
+ * @param {string} options.userId - User ID for token lookup
+ * @param {string} options.videoPath - Local path to the .mp4 file
+ * @param {string} options.title - Video title (will append #Shorts)
+ * @param {string} options.description - Video description
+ * @param {string[]} options.tags - Hashtag array
+ * @returns {Object} { platformVideoId, platformUrl }
+ */
+export async function uploadToYouTube({ userId, videoPath, title, description, tags }) {
+    const accessToken = await getValidToken(userId, 'youtube');
+    
+    const oauth2Client = new google.auth.OAuth2();
+    oauth2Client.setCredentials({ access_token: accessToken });
+    
+    const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
+    
+    // Ensure #Shorts is in the title for YouTube Shorts classification
+    const shortsTitle = title.includes('#Shorts') ? title : `${title} #Shorts`;
+    
+    const response = await youtube.videos.insert({
+        part: ['snippet', 'status'],
+        requestBody: {
+            snippet: {
+                title: shortsTitle.substring(0, 100), // YouTube title limit
+                description: `${description}\n\n${tags.map(t => `#${t}`).join(' ')}`,
+                tags: tags,
+                categoryId: '22' // People & Blogs
+            },
+            status: {
+                privacyStatus: 'public',
+                selfDeclaredMadeForKids: false
+            }
+        },
+        media: {
+            body: fs.createReadStream(videoPath)
+        }
+    });
+    
+    return {
+        platformVideoId: response.data.id,
+        platformUrl: `https://youtube.com/shorts/${response.data.id}`
+    };
+}
+```
+
+### `Backend/services/tiktokUploader.js`
+
+```javascript
+import fs from 'fs';
+import axios from 'axios';
+import { getValidToken } from './tokenRefresher.js';
+
+/**
+ * Upload a video to TikTok via Direct Post (Content Posting API)
+ * @param {Object} options
+ * @returns {Object} { platformVideoId, platformUrl }
+ */
+export async function uploadToTikTok({ userId, videoPath, title, description, tags }) {
+    const accessToken = await getValidToken(userId, 'tiktok');
+    
+    const videoSize = fs.statSync(videoPath).size;
+    const caption = `${title}\n${tags.map(t => `#${t}`).join(' ')}`.substring(0, 2200);
+    
+    // Step 1: Initialize upload via Direct Post
+    const initResponse = await axios.post(
+        'https://open.tiktokapis.com/v2/post/publish/video/init/',
+        {
+            post_info: {
+                title: caption,
+                privacy_level: 'PUBLIC_TO_EVERYONE',
+                disable_duet: false,
+                disable_comment: false,
+                disable_stitch: false
+            },
+            source_info: {
+                source: 'FILE_UPLOAD',
+                video_size: videoSize,
+                chunk_size: videoSize,     // Single chunk for files < 64MB
+                total_chunk_count: 1
+            }
+        },
+        {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json; charset=UTF-8'
+            }
+        }
+    );
+    
+    const { upload_url, publish_id } = initResponse.data.data;
+    
+    // Step 2: Upload the video binary
+    const videoBuffer = fs.readFileSync(videoPath);
+    await axios.put(upload_url, videoBuffer, {
+        headers: {
+            'Content-Type': 'video/mp4',
+            'Content-Length': videoSize,
+            'Content-Range': `bytes 0-${videoSize - 1}/${videoSize}`
+        }
+    });
+    
+    // Step 3: Check publish status (poll until complete or timeout)
+    let attempts = 0;
+    const maxAttempts = 30; // 5 minutes at 10s intervals
+    while (attempts < maxAttempts) {
+        await new Promise(r => setTimeout(r, 10000));
+        const statusRes = await axios.post(
+            'https://open.tiktokapis.com/v2/post/publish/status/fetch/',
+            { publish_id },
+            { headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' } }
+        );
+        
+        const status = statusRes.data.data?.status;
+        if (status === 'PUBLISH_COMPLETE') {
+            return {
+                platformVideoId: publish_id,
+                platformUrl: null // TikTok does not return a direct URL in the API response
+            };
+        }
+        if (status === 'FAILED') {
+            throw new Error(`TikTok publish failed: ${statusRes.data.data?.fail_reason || 'unknown'}`);
+        }
+        attempts++;
+    }
+    
+    throw new Error('TikTok upload timed out after 5 minutes');
+}
+```
+
+### `Backend/services/instagramUploader.js`
+
+```javascript
+import axios from 'axios';
+import { getValidToken } from './tokenRefresher.js';
+import { supabase } from '../middleware/auth.js';
+
+/**
+ * Upload a Reel to Instagram via Graph API (container-based two-step publish)
+ * Requires the video to be at a publicly accessible URL (Supabase storage)
+ * @param {Object} options
+ * @returns {Object} { platformVideoId, platformUrl }
+ */
+export async function uploadToInstagram({ userId, videoUrl, title, description, tags }) {
+    const accessToken = await getValidToken(userId, 'instagram');
+    
+    // Get the Instagram Business Account ID from social_connections
+    const { data: connection } = await supabase
+        .from('social_connections')
+        .select('platform_user_id')
+        .eq('user_id', userId)
+        .eq('platform', 'instagram')
+        .single();
+    
+    if (!connection) throw new Error('Instagram account not connected');
+    
+    const igUserId = connection.platform_user_id;
+    const caption = `${title}\n\n${tags.map(t => `#${t}`).join(' ')}`.substring(0, 2200);
+    
+    // Step 1: Create media container
+    const containerRes = await axios.post(
+        `https://graph.facebook.com/v19.0/${igUserId}/media`,
+        {
+            media_type: 'REELS',
+            video_url: videoUrl,   // Must be a publicly accessible URL
+            caption: caption
+        },
+        { params: { access_token: accessToken } }
+    );
+    
+    const containerId = containerRes.data.id;
+    
+    // Step 2: Poll container status until ready
+    let attempts = 0;
+    const maxAttempts = 60; // 10 minutes at 10s intervals
+    while (attempts < maxAttempts) {
+        await new Promise(r => setTimeout(r, 10000));
+        const statusRes = await axios.get(
+            `https://graph.facebook.com/v19.0/${containerId}`,
+            { params: { fields: 'status_code', access_token: accessToken } }
+        );
+        
+        if (statusRes.data.status_code === 'FINISHED') break;
+        if (statusRes.data.status_code === 'ERROR') {
+            throw new Error('Instagram container processing failed');
+        }
+        attempts++;
+    }
+    
+    // Step 3: Publish
+    const publishRes = await axios.post(
+        `https://graph.facebook.com/v19.0/${igUserId}/media_publish`,
+        { creation_id: containerId },
+        { params: { access_token: accessToken } }
+    );
+    
+    return {
+        platformVideoId: publishRes.data.id,
+        platformUrl: `https://www.instagram.com/reel/${publishRes.data.id}/`
+    };
+}
+```
+
+---
+
+## Phase 4: Backend - Scheduler Service
+
+### New npm Dependency
+
+```bash
+cd Backend && npm install node-cron
+```
+
+### `Backend/services/scheduler.js`
+
+This is the core autopilot engine. It initializes a `node-cron` job that runs every minute, finds schedules that are due, generates a unique topic angle, runs the video pipeline, and uploads to all connected platforms.
+
+```javascript
+import cron from 'node-cron';
+import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
+import fs from 'fs';
+import { supabase } from '../middleware/auth.js';
+import { generateScript } from './scriptGenerator.js';
+import { generateVoiceover } from './voiceGenerator.js';
+import { fetchStockFootage } from './stockFetcher.js';
+import { assembleVideo } from './videoAssembler.js';
+import { uploadToYouTube } from './youtubeUploader.js';
+import { uploadToTikTok } from './tiktokUploader.js';
+import { uploadToInstagram } from './instagramUploader.js';
+import { GoogleGenAI } from '@google/genai';
+import dotenv from 'dotenv';
+dotenv.config();
+
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const OUTPUT_DIR = path.resolve('output');
+const activeJobs = new Set(); // Prevent duplicate processing of same schedule
+
+export function initScheduler() {
+    // Run every minute
+    cron.schedule('* * * * *', async () => {
+        try {
+            await processSchedules();
+        } catch (err) {
+            console.error('[Scheduler] Top-level error:', err);
+        }
+    });
+    console.log('[Scheduler] Autopilot scheduler initialized');
+}
+
+async function processSchedules() {
+    const now = new Date();
+    
+    // Find all active schedules whose next_run_at is <= now
+    const { data: dueSchedules, error } = await supabase
+        .from('schedules')
+        .select('*')
+        .eq('is_active', true)
+        .lte('next_run_at', now.toISOString())
+        .order('next_run_at', { ascending: true })
+        .limit(10); // Process max 10 per cycle to avoid overload
+    
+    if (error || !dueSchedules?.length) return;
+    
+    for (const schedule of dueSchedules) {
+        // Skip if already being processed
+        if (activeJobs.has(schedule.id)) continue;
+        activeJobs.add(schedule.id);
+        
+        // Run async without awaiting (fire-and-forget per schedule)
+        processOneSchedule(schedule)
+            .catch(err => console.error(`[Scheduler] Schedule ${schedule.id} error:`, err))
+            .finally(() => activeJobs.delete(schedule.id));
+    }
+}
+
+async function processOneSchedule(schedule) {
+    const { id: scheduleId, user_id: userId, niche, topic_theme, tone,
+            style, style_prompt, voice_id, duration, target_platforms,
+            generated_angles } = schedule;
+    
+    console.log(`[Scheduler] Processing schedule ${scheduleId} for user ${userId}`);
+    
+    // Step 0: Check credits
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('credits, plan')
+        .eq('id', userId)
+        .single();
+    
+    if (!profile || profile.credits <= 0) {
+        console.log(`[Scheduler] User ${userId} has no credits. Skipping.`);
+        await updateScheduleAfterRun(scheduleId, schedule, {
+            last_error: 'Insufficient credits',
+            consecutive_failures: schedule.consecutive_failures + 1
+        });
+        return;
+    }
+    
+    // Step 1: Generate unique angle using Gemini
+    const angle = await generateUniqueAngle(topic_theme, niche, generated_angles);
+    
+    // Step 2: Generate the video using existing pipeline
+    const jobId = uuidv4();
+    const jobDir = path.join(OUTPUT_DIR, jobId);
+    if (!fs.existsSync(jobDir)) fs.mkdirSync(jobDir, { recursive: true });
+    
+    try {
+        // Generate script
+        const script = await generateScript({
+            topic: angle,
+            niche,
+            tone,
+            duration,
+            style: style_prompt
+        });
+        
+        // Generate voiceover
+        const { audioPath, timestamps } = await generateVoiceover({
+            text: script.cleanScript,
+            voiceId: voice_id,
+            outputDir: OUTPUT_DIR,
+            jobId
+        });
+        
+        // Fetch AI images
+        const searchTerms = script.segments.map(s => s.imagePrompt || s.searchTerm);
+        const clips = await fetchStockFootage({
+            searchTerms,
+            outputDir: OUTPUT_DIR,
+            jobId,
+            orientation: 'portrait'
+        });
+        
+        // Assemble video
+        const isFreeTrial = profile.plan === 'free';
+        const videoPath = await assembleVideo({
+            clips, audioPath, outputDir: OUTPUT_DIR, jobId,
+            script, timestamps, watermark: isFreeTrial
+        });
+        
+        // Upload to Supabase Storage
+        const videoBuffer = fs.readFileSync(videoPath);
+        const storagePath = `videos/${userId}/${jobId}.mp4`;
+        
+        const { error: uploadError } = await supabase.storage
+            .from('reelswave-videos')
+            .upload(storagePath, videoBuffer, {
+                contentType: 'video/mp4',
+                cacheControl: '3600'
+            });
+        
+        if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`);
+        
+        const { data: { publicUrl } } = supabase.storage
+            .from('reelswave-videos')
+            .getPublicUrl(storagePath);
+        
+        // Save to videos table
+        const { error: dbError } = await supabase
+            .from('videos')
+            .insert({
+                id: jobId,
+                user_id: userId,
+                title: script.title || angle,
+                topic: angle,
+                niche,
+                tone,
+                script: JSON.stringify(script),
+                video_url: publicUrl,
+                storage_path: storagePath,
+                status: 'completed',
+                hashtags: script.hashtags || [],
+                schedule_id: scheduleId,
+                is_autopilot: true
+            });
+        
+        if (dbError) console.error('[Scheduler] DB insert error:', dbError);
+        
+        // Deduct credit
+        await supabase
+            .from('profiles')
+            .update({ credits: profile.credits - 1 })
+            .eq('id', userId);
+        
+        // Cleanup local files
+        try { fs.unlinkSync(videoPath); } catch (e) {}
+        
+        // Step 3: Upload to target platforms
+        await uploadToPlatforms({
+            userId, videoId: jobId, scheduleId, videoPath, videoUrl: publicUrl,
+            title: script.title || angle,
+            description: script.hook || '',
+            hashtags: script.hashtags || [],
+            targetPlatforms: target_platforms
+        });
+        
+        // Step 4: Update schedule state
+        const updatedAngles = [...(generated_angles || []), angle].slice(-50); // Keep last 50
+        await updateScheduleAfterRun(scheduleId, schedule, {
+            last_error: null,
+            consecutive_failures: 0,
+            generated_angles: updatedAngles
+        });
+        
+    } catch (err) {
+        console.error(`[Scheduler] Video generation failed for schedule ${scheduleId}:`, err);
+        await updateScheduleAfterRun(scheduleId, schedule, {
+            last_error: err.message,
+            consecutive_failures: schedule.consecutive_failures + 1
+        });
+    }
+}
+
+async function generateUniqueAngle(topicTheme, niche, previousAngles) {
+    const previousList = (previousAngles || []).slice(-20).join('\n- ');
+    
+    const prompt = `You are a viral content strategist. Given a broad topic theme and niche, generate ONE fresh, unique video angle that has NOT been done before.
+
+THEME: ${topicTheme}
+NICHE: ${niche}
+
+${previousList ? `PREVIOUSLY USED ANGLES (do NOT repeat these):\n- ${previousList}` : ''}
+
+Rules:
+- Return ONLY a single specific topic string (no JSON, no extra text)
+- It should be specific enough to generate a full video script from
+- It should be a fresh take or unique angle on the theme
+- Make it attention-grabbing and viral-worthy
+- Keep it under 100 characters
+
+Example for theme "startup failure stories":
+"The $400M Startup That Failed Because of a Single Typo"`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: prompt,
+        config: { temperature: 1.0, maxOutputTokens: 200 }
+    });
+    
+    return response.text.trim().replace(/^["']|["']$/g, '');
+}
+
+async function uploadToPlatforms({ userId, videoId, scheduleId, videoPath, videoUrl,
+                                    title, description, hashtags, targetPlatforms }) {
+    for (const platform of targetPlatforms) {
+        // Create upload log entry
+        const { data: log } = await supabase
+            .from('upload_logs')
+            .insert({
+                user_id: userId,
+                video_id: videoId,
+                schedule_id: scheduleId,
+                platform,
+                status: 'uploading',
+                title,
+                description,
+                hashtags
+            })
+            .select()
+            .single();
+        
+        try {
+            let result;
+            
+            switch (platform) {
+                case 'youtube':
+                    // YouTube needs the local file path (stream upload)
+                    // Re-download from Supabase if local file was cleaned up
+                    let localPath = videoPath;
+                    if (!fs.existsSync(localPath)) {
+                        localPath = await downloadFromSupabase(videoUrl, videoId);
+                    }
+                    result = await uploadToYouTube({ userId, videoPath: localPath, title, description, tags: hashtags });
+                    break;
+                    
+                case 'tiktok':
+                    let tiktokPath = videoPath;
+                    if (!fs.existsSync(tiktokPath)) {
+                        tiktokPath = await downloadFromSupabase(videoUrl, videoId);
+                    }
+                    result = await uploadToTikTok({ userId, videoPath: tiktokPath, title, description, tags: hashtags });
+                    break;
+                    
+                case 'instagram':
+                    // Instagram uses public URL directly
+                    result = await uploadToInstagram({ userId, videoUrl, title, description, tags: hashtags });
+                    break;
+            }
+            
+            // Update log as completed
+            await supabase
+                .from('upload_logs')
+                .update({
+                    status: 'completed',
+                    platform_video_id: result?.platformVideoId,
+                    platform_url: result?.platformUrl,
+                    completed_at: new Date().toISOString()
+                })
+                .eq('id', log.id);
+                
+        } catch (err) {
+            console.error(`[Scheduler] Upload to ${platform} failed:`, err);
+            await supabase
+                .from('upload_logs')
+                .update({
+                    status: 'failed',
+                    error_message: err.message
+                })
+                .eq('id', log.id);
+        }
+    }
+}
+
+async function downloadFromSupabase(publicUrl, videoId) {
+    // Download the video back from Supabase to a temp local path
+    const response = await fetch(publicUrl);
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const tempPath = path.join(OUTPUT_DIR, `${videoId}_redownload.mp4`);
+    fs.writeFileSync(tempPath, buffer);
+    return tempPath;
+}
+
+function computeNextRunUtc(uploadTime, timezone) {
+    // uploadTime is like '14:30:00', timezone is like 'America/New_York'
+    // Compute next occurrence in UTC
+    const now = new Date();
+    
+    // Use Intl.DateTimeFormat to work with timezone
+    const [hours, minutes] = uploadTime.split(':').map(Number);
+    
+    // Create a date in the user's timezone for today
+    const userNow = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
+    const target = new Date(userNow);
+    target.setHours(hours, minutes, 0, 0);
+    
+    // If the time already passed today, schedule for tomorrow
+    if (target <= userNow) {
+        target.setDate(target.getDate() + 1);
+    }
+    
+    // Convert back to UTC
+    const offsetMs = target.getTime() - userNow.getTime() + now.getTime() - now.getTime();
+    // Simpler: compute the UTC time by determining the offset
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+    });
+    
+    // For production, use a library like luxon for reliable timezone math
+    // This is a simplified calculation
+    const diff = now.getTime() - new Date(formatter.format(now)).getTime();
+    const nextRun = new Date(target.getTime() + diff);
+    
+    return nextRun.toISOString();
+}
+
+async function updateScheduleAfterRun(scheduleId, schedule, overrides) {
+    const nextRun = computeNextRunUtc(schedule.upload_time, schedule.timezone);
+    
+    // Auto-pause after 5 consecutive failures
+    const shouldPause = (overrides.consecutive_failures || 0) >= 5;
+    
+    await supabase
+        .from('schedules')
+        .update({
+            last_run_at: new Date().toISOString(),
+            next_run_at: nextRun,
+            is_active: shouldPause ? false : schedule.is_active,
+            ...overrides,
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', scheduleId);
+}
+```
+
+### Initialize Scheduler in `Backend/index.js`
+
+Add at the end of `index.js` after the `app.listen()` call:
+
+```javascript
+import { initScheduler } from './services/scheduler.js';
+
+// ... existing code ...
+
+app.listen(PORT, () => {
+    console.log(`ReelsWave API running on http://localhost:${PORT}`);
+    initScheduler();
+});
+```
+
+---
+
+## Phase 5: Backend - Schedule Management Routes
+
+### `Backend/routes/schedules.js`
+
+```javascript
+import express from 'express';
+import { authMiddleware, supabase } from '../middleware/auth.js';
+import dotenv from 'dotenv';
+dotenv.config();
+
+const router = express.Router();
+
+const AUTOPILOT_PLANS = ['pro', 'dedicated'];
+
+/**
+ * GET /api/schedules
+ * List user's autopilot schedules
+ */
+router.get('/', authMiddleware, async (req, res) => {
+    try {
+        const { data: schedules, error } = await supabase
+            .from('schedules')
+            .select('*')
+            .eq('user_id', req.user.id)
+            .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        res.json({ schedules });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch schedules' });
+    }
+});
+
+/**
+ * POST /api/schedules
+ * Create a new autopilot schedule
+ */
+router.post('/', authMiddleware, async (req, res) => {
+    try {
+        // Verify plan
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('plan')
+            .eq('id', req.user.id)
+            .single();
+        
+        if (!profile || !AUTOPILOT_PLANS.includes(profile.plan)) {
+            return res.status(403).json({
+                error: 'Autopilot is only available on Pro and Dedicated plans'
+            });
+        }
+        
+        // Verify connected platforms exist
+        const { target_platforms } = req.body;
+        if (!target_platforms?.length) {
+            return res.status(400).json({ error: 'At least one target platform required' });
+        }
+        
+        const { data: connections } = await supabase
+            .from('social_connections')
+            .select('platform')
+            .eq('user_id', req.user.id)
+            .eq('is_valid', true)
+            .in('platform', target_platforms);
+        
+        const connectedPlatforms = connections?.map(c => c.platform) || [];
+        const missingPlatforms = target_platforms.filter(p => !connectedPlatforms.includes(p));
+        
+        if (missingPlatforms.length > 0) {
+            return res.status(400).json({
+                error: `Please connect these platforms first: ${missingPlatforms.join(', ')}`
+            });
+        }
+        
+        const { niche, topic_theme, tone, style, style_prompt,
+                voice_id, duration, upload_time, timezone } = req.body;
+        
+        // Validate required fields
+        if (!niche || !topic_theme || !style || !style_prompt || !upload_time || !timezone) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+        
+        // Compute initial next_run_at
+        const next_run_at = computeNextRunUtc(upload_time, timezone);
+        
+        const { data: schedule, error } = await supabase
+            .from('schedules')
+            .insert({
+                user_id: req.user.id,
+                niche,
+                topic_theme,
+                tone: tone || 'energetic',
+                style,
+                style_prompt,
+                voice_id: voice_id || null,
+                duration: duration || 60,
+                upload_time,
+                timezone,
+                target_platforms,
+                next_run_at,
+                is_active: true
+            })
+            .select()
+            .single();
+        
+        if (error) throw error;
+        res.status(201).json({ schedule });
+        
+    } catch (err) {
+        console.error('Create schedule error:', err);
+        res.status(500).json({ error: 'Failed to create schedule' });
+    }
+});
+
+/**
+ * PATCH /api/schedules/:id
+ * Update schedule (including pause/resume via is_active)
+ */
+router.patch('/:id', authMiddleware, async (req, res) => {
+    try {
+        const { data: existing } = await supabase
+            .from('schedules')
+            .select('*')
+            .eq('id', req.params.id)
+            .eq('user_id', req.user.id)
+            .single();
+        
+        if (!existing) return res.status(404).json({ error: 'Schedule not found' });
+        
+        const allowedFields = [
+            'niche', 'topic_theme', 'tone', 'style', 'style_prompt',
+            'voice_id', 'duration', 'upload_time', 'timezone',
+            'target_platforms', 'is_active'
+        ];
+        
+        const updates = {};
+        for (const field of allowedFields) {
+            if (req.body[field] !== undefined) {
+                updates[field] = req.body[field];
+            }
+        }
+        
+        // Recompute next_run_at if time or timezone changed
+        if (updates.upload_time || updates.timezone) {
+            updates.next_run_at = computeNextRunUtc(
+                updates.upload_time || existing.upload_time,
+                updates.timezone || existing.timezone
+            );
+        }
+        
+        // If resuming, also recompute next_run_at and reset consecutive failures
+        if (updates.is_active === true && !existing.is_active) {
+            updates.next_run_at = computeNextRunUtc(
+                updates.upload_time || existing.upload_time,
+                updates.timezone || existing.timezone
+            );
+            updates.consecutive_failures = 0;
+            updates.last_error = null;
+        }
+        
+        updates.updated_at = new Date().toISOString();
+        
+        const { data: schedule, error } = await supabase
+            .from('schedules')
+            .update(updates)
+            .eq('id', req.params.id)
+            .select()
+            .single();
+        
+        if (error) throw error;
+        res.json({ schedule });
+        
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to update schedule' });
+    }
+});
+
+/**
+ * DELETE /api/schedules/:id
+ */
+router.delete('/:id', authMiddleware, async (req, res) => {
+    try {
+        const { error } = await supabase
+            .from('schedules')
+            .delete()
+            .eq('id', req.params.id)
+            .eq('user_id', req.user.id);
+        
+        if (error) throw error;
+        res.json({ message: 'Schedule deleted' });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to delete schedule' });
+    }
+});
+
+/**
+ * GET /api/schedules/:id/logs
+ * Get upload logs for a specific schedule
+ */
+router.get('/:id/logs', authMiddleware, async (req, res) => {
+    try {
+        const { data: logs, error } = await supabase
+            .from('upload_logs')
+            .select('*')
+            .eq('schedule_id', req.params.id)
+            .eq('user_id', req.user.id)
+            .order('created_at', { ascending: false })
+            .limit(50);
+        
+        if (error) throw error;
+        res.json({ logs });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch logs' });
+    }
+});
+
+// Helper (duplicated from scheduler.js -- in production, extract to a shared util)
+function computeNextRunUtc(uploadTime, timezone) {
+    // ... same logic as in scheduler.js ...
+    // In production: extract to Backend/utils/time.js
+}
+
+export default router;
+```
+
+### Register in `Backend/index.js`
+
+```javascript
+import scheduleRoutes from './routes/schedules.js';
+// ...
+app.use('/api/schedules', scheduleRoutes);
+```
+
+---
+
+## Phase 6: Frontend - Autopilot Page
+
+### New Route
+
+Add to `Frontend/src/App.jsx`:
+
+```jsx
+import Autopilot from './pages/Autopilot';
+
+// Inside <Routes>:
+<Route
+    path="/autopilot"
+    element={session ? <Autopilot session={session} /> : <Navigate to="/login" />}
+/>
+```
+
+Add a navbar link for "Autopilot" in `Frontend/src/components/Navbar.jsx` next to the "Dashboard" link.
+
+### New File: `Frontend/src/pages/Autopilot.jsx`
+
+This is the largest frontend addition. It is structured as a tabbed page with three sections:
+
+#### Section 1: Connected Accounts
+
+```jsx
+// Displays connected social accounts with connect/disconnect buttons
+// Each platform card shows:
+//   - Platform icon (YouTube, TikTok, Instagram)
+//   - Connection status (connected/disconnected)
+//   - Connected account name + avatar
+//   - Connect button (opens OAuth popup) or Disconnect button
+
+function SocialConnections({ session, connections, onRefresh }) {
+    const connectPlatform = (platform) => {
+        // Open popup to /api/social/{platform}/connect with auth token
+        // The backend sets a cookie or uses state parameter for auth
+        // On callback, backend redirects to /autopilot?connected={platform}
+        const width = 600, height = 700;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        window.open(
+            `${API_URL}/api/social/${platform}/connect?token=${session.access_token}`,
+            'Connect Account',
+            `width=${width},height=${height},left=${left},top=${top}`
+        );
+        
+        // Poll for completion or listen for postMessage
+        const interval = setInterval(async () => {
+            // Re-fetch connections to see if new one appeared
+            // When found, clearInterval and call onRefresh()
+        }, 2000);
+    };
+    
+    const disconnectPlatform = async (platform) => {
+        await fetch(`${API_URL}/api/social/disconnect/${platform}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${session.access_token}` }
+        });
+        onRefresh();
+    };
+    
+    return (
+        <div className="social-connections-grid">
+            {['youtube', 'tiktok', 'instagram'].map(platform => {
+                const conn = connections.find(c => c.platform === platform);
+                return (
+                    <div key={platform} className="card social-card">
+                        {/* Platform icon, name, status, connect/disconnect button */}
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+```
+
+#### Section 2: Schedule Creation Form
+
+Reuses the same `NICHES`, `TONES`, and `STYLES` arrays from `Create.jsx`. These should be extracted to a shared constants file `Frontend/src/lib/constants.js`.
+
+```jsx
+function ScheduleForm({ session, connections, onCreated }) {
+    // Form fields:
+    // - niche (selector grid, same as Create step 1)
+    // - topic_theme (text input: "What broad topic should AI generate videos about?")
+    // - style (style grid, same as Create step 2)
+    // - tone (tone buttons)
+    // - duration (30/60/90)
+    // - voiceId (select dropdown)
+    // - upload_time (time input <input type="time">)
+    // - timezone (auto-detected from Intl.DateTimeFormat().resolvedOptions().timeZone, with override select)
+    // - target_platforms (checkboxes for connected platforms only)
+    
+    const handleSubmit = async () => {
+        const res = await fetch(`${API_URL}/api/schedules`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ ... })
+        });
+        // Handle response, show success/error
+        onCreated();
+    };
+    
+    return (
+        <div className="schedule-form card">
+            {/* Multi-step or single-page form */}
+        </div>
+    );
+}
+```
+
+#### Section 3: Active Schedules & Upload History
+
+```jsx
+function SchedulesList({ session, schedules, onUpdate }) {
+    // Each schedule card shows:
+    //   - Topic theme, niche, style, tone
+    //   - Upload time + timezone
+    //   - Target platforms (icons)
+    //   - Status: Active / Paused / Error
+    //   - Last run time + next run time
+    //   - Consecutive failure count (if > 0)
+    //   - Pause/Resume toggle button
+    //   - Edit button (opens form pre-filled)
+    //   - Delete button
+    //   - "View Logs" expand section showing upload_logs
+    
+    return (
+        <div className="schedules-list">
+            {schedules.map(schedule => (
+                <div key={schedule.id} className="card schedule-card">
+                    {/* Schedule details and controls */}
+                </div>
+            ))}
+        </div>
+    );
+}
+```
+
+### New CSS File: `Frontend/src/pages/Autopilot.css`
+
+Follows the existing CSS pattern from `Create.css` and `Dashboard.css`, using the same CSS variables and design tokens from `index.css`.
+
+---
+
+## Phase 7: Implementation Sequencing
+
+### Sprint 1: Foundation (Days 1-3)
+1. Run SQL migrations for all 4 tables / alterations
+2. Create `Backend/services/tokenRefresher.js`
+3. Create `Backend/routes/social.js` with YouTube OAuth only (simplest to test, `googleapis` already installed)
+4. Create `Backend/services/youtubeUploader.js`
+5. Extract shared constants to `Frontend/src/lib/constants.js`
+6. Scaffold `Frontend/src/pages/Autopilot.jsx` with social connections section only
+
+### Sprint 2: Schedule System (Days 4-6)
+7. Create `Backend/routes/schedules.js` (CRUD)
+8. Create `Backend/services/scheduler.js` (core engine)
+9. Create `Backend/utils/time.js` (timezone computation utility)
+10. Wire scheduler initialization into `Backend/index.js`
+11. Build frontend schedule creation form
+12. Build frontend schedules list with pause/resume/delete
+
+### Sprint 3: Additional Platforms (Days 7-9)
+13. Add TikTok OAuth flow to `Backend/routes/social.js`
+14. Create `Backend/services/tiktokUploader.js`
+15. Add Instagram OAuth flow to `Backend/routes/social.js`
+16. Create `Backend/services/instagramUploader.js`
+17. Test all three platform upload flows end-to-end
+
+### Sprint 4: Polish (Days 10-12)
+18. Add upload logs UI section to Autopilot page
+19. Add Autopilot link to Navbar and Dashboard
+20. Add plan-gate UI (show upgrade prompt for Basic/Free users)
+21. Add error recovery: auto-retry logic, notification when schedule auto-pauses
+22. Handle edge cases: token revocation, rate limits, subscription downgrades
+
+---
+
+## Key Architectural Decisions
+
+1. **Why `node-cron` over a separate worker process?** The existing backend is a single Express process with an in-memory job queue. Adding `node-cron` maintains this simplicity. For production scale, this should eventually move to a dedicated worker (e.g., BullMQ + Redis), but `node-cron` matches the current architecture.
+
+2. **Why `next_run_at` pre-computation?** Rather than parsing timezone + time every minute for every schedule, we pre-compute the next UTC trigger time and store it. The cron job just does a simple `lte()` query.
+
+3. **OAuth state stored in-memory Map.** This matches the existing pattern (in-memory job queue). The state entries should have a TTL cleanup (setTimeout to delete after 10 minutes) to prevent memory leaks.
+
+4. **Scheduler fire-and-forget pattern.** Each due schedule is processed concurrently (not sequentially), but there is a `Set` guard to prevent double-processing if a schedule takes longer than 1 minute.
+
+5. **Instagram uses public URLs.** The video is already uploaded to Supabase Storage with a public URL. Instagram's Graph API requires a publicly accessible video URL, so this works without downloading the file locally.
+
+6. **YouTube and TikTok need local file streams.** Both require uploading the raw binary. The scheduler downloads the video from Supabase back to disk if the local file was already cleaned up.
+
+7. **`generated_angles` JSONB column** prevents topic repetition. The last 50 angles are stored and passed to Gemini as a negative constraint. This ensures daily variety.
+
+8. **Auto-pause after 5 consecutive failures** prevents burning credits on broken pipelines. The user sees the error in the UI and can fix the issue (re-connect account, etc.) before resuming.
+
+---
+
+## New Files Summary
+
+| File | Purpose |
+|------|---------|
+| `Backend/routes/social.js` | OAuth connect/callback/disconnect for all 3 platforms |
+| `Backend/routes/schedules.js` | CRUD + logs endpoints for autopilot schedules |
+| `Backend/services/youtubeUploader.js` | YouTube Shorts upload via googleapis |
+| `Backend/services/tiktokUploader.js` | TikTok Direct Post upload via HTTP |
+| `Backend/services/instagramUploader.js` | Instagram Reels publish via Graph API |
+| `Backend/services/tokenRefresher.js` | OAuth token validation and refresh |
+| `Backend/services/scheduler.js` | Core cron-based autopilot engine |
+| `Backend/utils/time.js` | Timezone-aware next-run computation |
+| `Frontend/src/pages/Autopilot.jsx` | Full autopilot UI page |
+| `Frontend/src/pages/Autopilot.css` | Styles for autopilot page |
+| `Frontend/src/lib/constants.js` | Shared NICHES, TONES, STYLES arrays |
+
+## Modified Files Summary
+
+| File | Change |
+|------|--------|
+| `Backend/index.js` | Import and mount social + schedule routes; init scheduler |
+| `Backend/.env` / `.env.example` | Add YouTube/TikTok/Instagram OAuth credentials |
+| `Backend/package.json` | Add `node-cron` dependency |
+| `Frontend/src/App.jsx` | Add `/autopilot` route |
+| `Frontend/src/components/Navbar.jsx` | Add Autopilot nav link |
+| `Frontend/src/pages/Create.jsx` | Import from shared constants |
+| `Frontend/src/pages/Dashboard.jsx` | Add autopilot stats card / link |
+
+---
+
+### Critical Files for Implementation
+
+- `C:/Users/kfits/Projects/ReelsWave/Backend/routes/videos.js` - Contains the existing video generation pipeline (processNextJob) that must be replicated in the scheduler service. The credit-check, script generation, voiceover, image generation, video assembly, Supabase upload, and credit deduction logic all live here and serve as the reference implementation.
+- `C:/Users/kfits/Projects/ReelsWave/Backend/services/scriptGenerator.js` - The Gemini-based script generator that the scheduler will call directly. Its function signature and return format (script.cleanScript, script.segments, script.hashtags) define the interface for the autopilot pipeline.
+- `C:/Users/kfits/Projects/ReelsWave/Backend/middleware/auth.js` - Authentication middleware and Supabase service-role client export. All new routes must import `authMiddleware` and `supabase` from here. The OAuth callback routes are an exception (they validate via state parameter instead of JWT).
+- `C:/Users/kfits/Projects/ReelsWave/Frontend/src/pages/Create.jsx` - Contains the NICHES, TONES, and STYLES constant arrays that must be extracted to a shared module. Also serves as the UI pattern reference for the schedule creation form (multi-step wizard, form controls, loading states).
+- `C:/Users/kfits/Projects/ReelsWave/Backend/index.js` - Entry point that must be modified to mount the two new route modules (`/api/social`, `/api/schedules`) and call `initScheduler()` on startup.

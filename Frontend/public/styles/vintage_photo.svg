@@ -1,0 +1,154 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="312" height="500" viewBox="0 0 312 500">
+  <defs>
+    <linearGradient id="wallBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#c8a882"/>
+      <stop offset="100%" stop-color="#8c6640"/>
+    </linearGradient>
+    <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f5deb3"/>
+      <stop offset="100%" stop-color="#e8c278"/>
+    </linearGradient>
+    <linearGradient id="groundGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a0744a"/>
+      <stop offset="100%" stop-color="#6b4c2a"/>
+    </linearGradient>
+    <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fff176" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#ffb300" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="vignette" cx="50%" cy="50%" r="60%">
+      <stop offset="40%" stop-color="transparent"/>
+      <stop offset="100%" stop-color="rgba(60,30,0,0.55)"/>
+    </radialGradient>
+    <filter id="grain" x="0%" y="0%" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.72" numOctaves="4" stitchTiles="stitch" result="noise"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.18 0" in="noise" result="grainAlpha"/>
+      <feBlend in="SourceGraphic" in2="grainAlpha" mode="multiply"/>
+    </filter>
+    <filter id="softBlur">
+      <feGaussianBlur stdDeviation="0.6"/>
+    </filter>
+  </defs>
+
+  <!-- Background warm wall -->
+  <rect width="312" height="500" fill="url(#wallBg)"/>
+
+  <!-- Film strip left -->
+  <rect x="0" y="0" width="32" height="500" fill="#1c0e00"/>
+  <!-- Film strip right -->
+  <rect x="280" y="0" width="32" height="500" fill="#1c0e00"/>
+  <!-- Film edge lines -->
+  <rect x="30" y="0" width="2" height="500" fill="#2e1800" opacity="0.8"/>
+  <rect x="280" y="0" width="2" height="500" fill="#2e1800" opacity="0.8"/>
+  <!-- Sprocket holes left -->
+  <rect x="4" y="18"  width="20" height="14" rx="3" fill="#3a2000"/>
+  <rect x="4" y="55"  width="20" height="14" rx="3" fill="#3a2000"/>
+  <rect x="4" y="92"  width="20" height="14" rx="3" fill="#3a2000"/>
+  <rect x="4" y="129" width="20" height="14" rx="3" fill="#3a2000"/>
+  <rect x="4" y="166" width="20" height="14" rx="3" fill="#3a2000"/>
+  <rect x="4" y="203" width="20" height="14" rx="3" fill="#3a2000"/>
+  <rect x="4" y="240" width="20" height="14" rx="3" fill="#3a2000"/>
+  <rect x="4" y="277" width="20" height="14" rx="3" fill="#3a2000"/>
+  <rect x="4" y="314" width="20" height="14" rx="3" fill="#3a2000"/>
+  <rect x="4" y="351" width="20" height="14" rx="3" fill="#3a2000"/>
+  <rect x="4" y="388" width="20" height="14" rx="3" fill="#3a2000"/>
+  <rect x="4" y="425" width="20" height="14" rx="3" fill="#3a2000"/>
+  <rect x="4" y="462" width="20" height="14" rx="3" fill="#3a2000"/>
+  <!-- Sprocket holes right -->
+  <rect x="288" y="18"  width="20" height="14" rx="3" fill="#3a2000"/>
+  <rect x="288" y="55"  width="20" height="14" rx="3" fill="#3a2000"/>
+  <rect x="288" y="92"  width="20" height="14" rx="3" fill="#3a2000"/>
+  <rect x="288" y="129" width="20" height="14" rx="3" fill="#3a2000"/>
+  <rect x="288" y="166" width="20" height="14" rx="3" fill="#3a2000"/>
+  <rect x="288" y="203" width="20" height="14" rx="3" fill="#3a2000"/>
+  <rect x="288" y="240" width="20" height="14" rx="3" fill="#3a2000"/>
+  <rect x="288" y="277" width="20" height="14" rx="3" fill="#3a2000"/>
+  <rect x="288" y="314" width="20" height="14" rx="3" fill="#3a2000"/>
+  <rect x="288" y="351" width="20" height="14" rx="3" fill="#3a2000"/>
+  <rect x="288" y="388" width="20" height="14" rx="3" fill="#3a2000"/>
+  <rect x="288" y="425" width="20" height="14" rx="3" fill="#3a2000"/>
+  <rect x="288" y="462" width="20" height="14" rx="3" fill="#3a2000"/>
+
+  <!-- Main polaroid (slightly tilted) -->
+  <g transform="rotate(-4, 156, 210)">
+    <!-- Shadow -->
+    <rect x="53" y="68" width="208" height="268" rx="2" fill="rgba(0,0,0,0.35)" filter="url(#softBlur)"/>
+    <!-- White border -->
+    <rect x="48" y="62" width="208" height="268" rx="2" fill="#f5f0e8"/>
+    <!-- Photo area inside polaroid -->
+    <rect x="58" y="72" width="188" height="188" fill="url(#skyGrad)"/>
+    <rect x="58" y="180" width="188" height="80" fill="url(#groundGrad)"/>
+    <!-- Sun glow -->
+    <ellipse cx="210" cy="105" rx="38" ry="38" fill="url(#sunGlow)"/>
+    <circle cx="210" cy="105" r="18" fill="#ffcc44" opacity="0.95"/>
+    <!-- Horizon hills -->
+    <ellipse cx="100" cy="185" rx="60" ry="25" fill="#7a5230" opacity="0.7"/>
+    <ellipse cx="190" cy="188" rx="50" ry="20" fill="#6b4420" opacity="0.6"/>
+    <!-- Trees (simple) -->
+    <rect x="78" y="152" width="5" height="30" fill="#4a2e10"/>
+    <ellipse cx="80" cy="148" rx="12" ry="14" fill="#5a3a15" opacity="0.85"/>
+    <rect x="118" y="158" width="4" height="22" fill="#4a2e10"/>
+    <ellipse cx="120" cy="154" rx="10" ry="12" fill="#6b4820" opacity="0.8"/>
+    <!-- Light leak top-right -->
+    <ellipse cx="240" cy="80" rx="45" ry="25" fill="#fff3b0" opacity="0.25"/>
+    <!-- Polaroid bottom label area -->
+    <rect x="58" y="260" width="188" height="60" fill="#f5f0e8"/>
+    <!-- Handwritten text -->
+    <text x="152" y="284" font-family="Georgia, serif" font-size="10" fill="#8b6040" text-anchor="middle" font-style="italic" opacity="0.8">summer memories</text>
+    <text x="152" y="300" font-family="Georgia, serif" font-size="9" fill="#a07850" text-anchor="middle" font-style="italic" opacity="0.6">• 1987 •</text>
+    <!-- Small tape pieces -->
+    <rect x="120" y="58" width="40" height="10" rx="1" fill="#f5e9c0" opacity="0.7"/>
+  </g>
+
+  <!-- Second small polaroid (background, more tilted) -->
+  <g transform="rotate(7, 156, 400)">
+    <rect x="90" y="358" width="136" height="175" rx="2" fill="rgba(0,0,0,0.2)" filter="url(#softBlur)"/>
+    <rect x="86" y="354" width="136" height="175" rx="2" fill="#ede8dc"/>
+    <rect x="96" y="364" width="116" height="116" fill="#d4a86a"/>
+    <!-- Simple scene in second photo -->
+    <rect x="96" y="364" width="116" height="58" fill="#e8c87a"/>
+    <rect x="96" y="422" width="116" height="58" fill="#a07840"/>
+    <circle cx="185" cy="388" rx="14" ry="14" fill="#ffbb33" opacity="0.85"/>
+    <ellipse cx="120" cy="425" rx="30" ry="12" fill="#7a5828" opacity="0.65"/>
+    <rect x="86" y="480" width="136" height="38" fill="#ede8dc"/>
+    <text x="154" y="500" font-family="Georgia, serif" font-size="8" fill="#a08060" text-anchor="middle" font-style="italic" opacity="0.7">vacation '92</text>
+  </g>
+
+  <!-- Vintage camera (bottom-left accent) -->
+  <g transform="translate(44, 390) rotate(12)">
+    <!-- Camera body -->
+    <rect x="0" y="10" width="52" height="36" rx="4" fill="#2a1a08"/>
+    <rect x="4" y="14" width="44" height="28" rx="2" fill="#3d2810"/>
+    <!-- Lens -->
+    <circle cx="24" cy="28" r="11" fill="#1a0e04"/>
+    <circle cx="24" cy="28" r="8" fill="#0d0804"/>
+    <circle cx="24" cy="28" r="5" fill="#1e1208" opacity="0.9"/>
+    <circle cx="21" cy="25" r="2" fill="white" opacity="0.3"/>
+    <!-- Viewfinder -->
+    <rect x="36" y="16" width="8" height="6" rx="1" fill="#1a0e04"/>
+    <!-- Shutter button -->
+    <circle cx="44" cy="10" r="4" fill="#4a3020"/>
+    <!-- Flash mount -->
+    <rect x="8" y="6" width="12" height="6" rx="1" fill="#3a2418"/>
+    <!-- Strap lug -->
+    <rect x="0" y="22" width="5" height="8" rx="1" fill="#2a1a08"/>
+    <!-- Camera detail lines -->
+    <line x1="4" y1="28" x2="8" y2="28" stroke="#2a1a08" stroke-width="1"/>
+  </g>
+
+  <!-- Scattered small photos accent top-right -->
+  <g transform="rotate(15, 260, 80)">
+    <rect x="234" y="48" width="52" height="52" rx="1" fill="#f0ead8"/>
+    <rect x="238" y="52" width="44" height="36" fill="#c4956a"/>
+    <rect x="238" y="52" width="44" height="18" fill="#e2b870"/>
+    <circle cx="272" cy="62" r="8" fill="#ffcc44" opacity="0.7"/>
+    <rect x="238" y="88" width="52" height="12" fill="#f0ead8"/>
+  </g>
+
+  <!-- Grain overlay -->
+  <rect width="312" height="500" fill="transparent" filter="url(#grain)"/>
+  <!-- Vignette -->
+  <rect width="312" height="500" fill="url(#vignette)"/>
+  <!-- Warm sepia tint overlay -->
+  <rect width="312" height="500" fill="#d4822a" opacity="0.08"/>
+</svg>

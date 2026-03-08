@@ -1,0 +1,28 @@
+# Environment
+.env
+.env.local
+.env.production
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Video output (generated files)
+Backend/output/*.mp4
+Backend/output/*.mp3
+Backend/output/*.txt
+
+# Logs
+*.log
+npm-debug.log*

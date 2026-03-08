@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \":*)",
+      "Bash(node -e \":*)",
+      "Bash(node -e \"const fs=require\\(''fs''\\); const p=''C:/Users/kfits/.claude/projects/C--Users-kfits-Projects-ReelsWave/e100f9cc-515f-49f8-8089-1269b0776f44/tool-results/toolu_01J3qaZhJ8eu5ZCSa5gWMejG.json''; const d=JSON.parse\\(fs.readFileSync\\(p,''utf8''\\)\\); fs.writeFileSync\\(''C:/Users/kfits/Projects/ReelsWave/temp_plan.txt'',d[0].text\\); console.log\\(''Done: ''+d[0].text.length+'' chars''\\);\")",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(npm run build)",
+      "Bash(where npm)",
+      "Bash(where node)"
+    ]
+  }
+}
