@@ -1,13 +1,6 @@
 import ffmpeg from 'fluent-ffmpeg';
-import ffmpegStatic from 'ffmpeg-static';
-import ffprobeStatic from 'ffprobe-static';
 import fs from 'fs';
 import path from 'path';
-
-console.log('[videoAssembler] ffmpeg path:', ffmpegStatic);
-console.log('[videoAssembler] ffprobe path:', ffprobeStatic.path);
-ffmpeg.setFfmpegPath(ffmpegStatic);
-ffmpeg.setFfprobePath(ffprobeStatic.path);
 
 /**
  * Assemble final video from clips, voiceover, and captions
@@ -107,7 +100,7 @@ export async function assembleVideo({ clips, audioPath, outputDir, jobId, script
 
                 command = command.inputOptions(['-loop', '1'])
                     .outputOptions([
-                        '-threads', '1',
+
                         '-t', String(clipDurations[i]),
                         '-vf', `format=yuv420p,zoompan=z='zoom+0.0015':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${frames}:s=1080x1920`,
                         '-c:v', 'libx264',
