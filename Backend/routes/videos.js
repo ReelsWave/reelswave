@@ -355,7 +355,7 @@ router.get('/connected-profiles', authMiddleware, async (req, res) => {
  */
 router.post('/auto-growth-settings', authMiddleware, async (req, res) => {
     try {
-        const { enabled, time, settings } = req.body;
+        const { enabled, time, time2, time3, settings } = req.body;
         const userId = req.user.id;
 
         // Verify plan
@@ -369,13 +369,20 @@ router.post('/auto-growth-settings', authMiddleware, async (req, res) => {
             return res.status(403).json({ error: 'Auto Growth is only available for Pro and Dedicated plans.' });
         }
 
+        const updatePayload = {
+            auto_growth_enabled: enabled,
+            auto_growth_time: time,
+            auto_growth_settings: settings
+        };
+
+        if (profile.plan === 'dedicated') {
+            updatePayload.auto_growth_time_2 = time2 || null;
+            updatePayload.auto_growth_time_3 = time3 || null;
+        }
+
         const { error } = await supabase
             .from('profiles')
-            .update({
-                auto_growth_enabled: enabled,
-                auto_growth_time: time,
-                auto_growth_settings: settings
-            })
+            .update(updatePayload)
             .eq('id', userId);
 
         if (error) throw error;

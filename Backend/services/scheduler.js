@@ -23,37 +23,56 @@ export function initScheduler() {
         const currentUtcTime = `${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')}`;
 
         try {
-            // Find users due for auto growth
-            // 1. Enabled
-            // 2. Time matches (HH:mm)
-            // 3. Plan is pro or dedicated
-            // 4. Not run today (last_auto_growth_run is null or < today)
+            // Find users where any of their scheduled time slots match now
             const { data: users, error } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('auto_growth_enabled', true)
-                .eq('auto_growth_time', currentUtcTime)
-                .in('plan', ['pro', 'dedicated']);
+                .in('plan', ['pro', 'dedicated'])
+                .or(`auto_growth_time.eq.${currentUtcTime},auto_growth_time_2.eq.${currentUtcTime},auto_growth_time_3.eq.${currentUtcTime}`);
 
             if (error) {
                 console.error('Scheduler DB error:', error.message);
                 return;
             }
 
-            for (const user of users) {
-                // Check if already run today
-                const lastRun = user.last_auto_growth_run ? new Date(user.last_auto_growth_run) : null;
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
 
-                if (lastRun && lastRun >= today) {
-                    continue; // Skip if already run today
+            for (const user of users) {
+                // Slot 1 — all eligible plans
+                if (user.auto_growth_time === currentUtcTime) {
+                    const lastRun = user.last_auto_growth_run ? new Date(user.last_auto_growth_run) : null;
+                    if (!lastRun || lastRun < today) {
+                        console.log(`🚀 Auto Growth slot 1 for user: ${user.id}`);
+                        runAutoGrowthForUser(user, 1).catch(err =>
+                            console.error(`Auto Growth slot 1 failed for ${user.id}:`, err.message)
+                        );
+                    }
                 }
 
-                console.log(`🚀 Triggering Auto Growth for user: ${user.id}`);
-                runAutoGrowthForUser(user).catch(err => {
-                    console.error(`Auto Growth failed for user ${user.id}:`, err.message);
-                });
+                // Slots 2 & 3 — Dedicated only
+                if (user.plan === 'dedicated') {
+                    if (user.auto_growth_time_2 === currentUtcTime) {
+                        const lastRun2 = user.last_auto_growth_run_2 ? new Date(user.last_auto_growth_run_2) : null;
+                        if (!lastRun2 || lastRun2 < today) {
+                            console.log(`🚀 Auto Growth slot 2 for user: ${user.id}`);
+                            runAutoGrowthForUser(user, 2).catch(err =>
+                                console.error(`Auto Growth slot 2 failed for ${user.id}:`, err.message)
+                            );
+                        }
+                    }
+
+                    if (user.auto_growth_time_3 === currentUtcTime) {
+                        const lastRun3 = user.last_auto_growth_run_3 ? new Date(user.last_auto_growth_run_3) : null;
+                        if (!lastRun3 || lastRun3 < today) {
+                            console.log(`🚀 Auto Growth slot 3 for user: ${user.id}`);
+                            runAutoGrowthForUser(user, 3).catch(err =>
+                                console.error(`Auto Growth slot 3 failed for ${user.id}:`, err.message)
+                            );
+                        }
+                    }
+                }
             }
         } catch (err) {
             console.error('Scheduler error:', err.message);
@@ -65,7 +84,7 @@ export function initScheduler() {
  * Core logic for a single auto-growth run
  * @param {Object} user - User profile data
  */
-async function runAutoGrowthForUser(user) {
+async function runAutoGrowthForUser(user, slot = 1) {
     const jobId = uuidv4();
     const userId = user.id;
     const settings = user.auto_growth_settings || {};
@@ -177,13 +196,15 @@ async function runAutoGrowthForUser(user) {
             console.warn(`[Auto Growth ${userId}] No social profiles connected. Skipping post.`);
         }
 
-        // Step 8: Update profile (credits and last run)
+        // Step 8: Update profile (credits and last run for this slot)
+        const runUpdate = { credits: Math.max(0, user.credits - 1) };
+        if (slot === 1) runUpdate.last_auto_growth_run = new Date().toISOString();
+        if (slot === 2) runUpdate.last_auto_growth_run_2 = new Date().toISOString();
+        if (slot === 3) runUpdate.last_auto_growth_run_3 = new Date().toISOString();
+
         await supabase
             .from('profiles')
-            .update({
-                credits: Math.max(0, user.credits - 1),
-                last_auto_growth_run: new Date().toISOString()
-            })
+            .update(runUpdate)
             .eq('id', userId);
 
         // Cleanup local file

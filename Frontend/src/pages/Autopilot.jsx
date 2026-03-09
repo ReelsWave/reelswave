@@ -96,6 +96,8 @@ function Autopilot({ session }) {
     // Engine config
     const [enabled, setEnabled] = useState(false);
     const [time, setTime] = useState('09:00');
+    const [time2, setTime2] = useState('14:00');
+    const [time3, setTime3] = useState('20:00');
     const [topicPrompt, setTopicPrompt] = useState('Daily motivation for entrepreneurs');
     const [niche, setNiche] = useState('motivational');
     const [tone, setTone] = useState('energetic');
@@ -118,6 +120,8 @@ function Autopilot({ session }) {
             if (profileData) {
                 setEnabled(profileData.auto_growth_enabled || false);
                 setTime(profileData.auto_growth_time || '09:00');
+                setTime2(profileData.auto_growth_time_2 || '14:00');
+                setTime3(profileData.auto_growth_time_3 || '20:00');
                 const s = profileData.auto_growth_settings || {};
                 setTopicPrompt(s.topic || 'Daily motivation for entrepreneurs');
                 setNiche(s.niche || 'motivational');
@@ -149,6 +153,8 @@ function Autopilot({ session }) {
                 body: JSON.stringify({
                     enabled,
                     time,
+                    time2: profile?.plan === 'dedicated' ? time2 : null,
+                    time3: profile?.plan === 'dedicated' ? time3 : null,
                     settings: { topic: topicPrompt, niche, tone, style }
                 })
             });
@@ -386,16 +392,45 @@ function Autopilot({ session }) {
                                 <div className="ap-field">
                                     <label className="ap-field-label">
                                         <Clock size={13} />
-                                        Daily Post Time <span className="ap-field-muted">(UTC)</span>
+                                        {profile?.plan === 'dedicated' ? 'Post Times' : 'Daily Post Time'} <span className="ap-field-muted">(UTC)</span>
                                     </label>
-                                    <input
-                                        type="time"
-                                        className="ap-time-input"
-                                        value={time}
-                                        onChange={e => setTime(e.target.value)}
-                                    />
+                                    <div className="ap-time-slots">
+                                        <div className="ap-time-slot">
+                                            {profile?.plan === 'dedicated' && <span className="ap-time-slot-label">Slot 1</span>}
+                                            <input
+                                                type="time"
+                                                className="ap-time-input"
+                                                value={time}
+                                                onChange={e => setTime(e.target.value)}
+                                            />
+                                        </div>
+                                        {profile?.plan === 'dedicated' && (
+                                            <>
+                                                <div className="ap-time-slot">
+                                                    <span className="ap-time-slot-label">Slot 2</span>
+                                                    <input
+                                                        type="time"
+                                                        className="ap-time-input"
+                                                        value={time2}
+                                                        onChange={e => setTime2(e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="ap-time-slot">
+                                                    <span className="ap-time-slot-label">Slot 3</span>
+                                                    <input
+                                                        type="time"
+                                                        className="ap-time-input"
+                                                        value={time3}
+                                                        onChange={e => setTime3(e.target.value)}
+                                                    />
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
                                     <span className="ap-hint">
-                                        Engine fires at exactly this time — 365 days a year, automatically.
+                                        {profile?.plan === 'dedicated'
+                                            ? 'Engine fires at all 3 times — 3 videos posted every single day.'
+                                            : 'Engine fires at exactly this time — 365 days a year, automatically.'}
                                     </span>
                                 </div>
 
@@ -479,7 +514,9 @@ function Autopilot({ session }) {
                                 <div className={`ap-schedule-dot ${isLive ? 'live' : ''}`} />
                                 <span>
                                     {isLive
-                                        ? `Publishing ${selectedNiche?.emoji} ${selectedNiche?.name} videos at ${time} UTC · ${selectedTone?.label} tone`
+                                        ? profile?.plan === 'dedicated'
+                                            ? `Publishing ${selectedNiche?.emoji} ${selectedNiche?.name} at ${time}, ${time2}, ${time3} UTC · ${selectedTone?.label} tone`
+                                            : `Publishing ${selectedNiche?.emoji} ${selectedNiche?.name} videos at ${time} UTC · ${selectedTone?.label} tone`
                                         : 'Engine paused — toggle power on to activate daily publishing'
                                     }
                                 </span>
