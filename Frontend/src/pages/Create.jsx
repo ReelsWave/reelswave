@@ -53,12 +53,8 @@ function Create({ session }) {
     const [tone, setTone] = useState('energetic');
     const [duration, setDuration] = useState(60);
     const [voiceId, setVoiceId] = useState('');
-    const [script, setScript] = useState(null);
-    const [editedScript, setEditedScript] = useState('');
-
     // Generation state
     const [generating, setGenerating] = useState(false);
-    const [generatingScript, setGeneratingScript] = useState(false);
     const [jobId, setJobId] = useState(null);
     const [jobStatus, setJobStatus] = useState(null);
     const [error, setError] = useState('');
@@ -95,47 +91,11 @@ function Create({ session }) {
         return () => clearInterval(interval);
     }, [jobId, navigate]);
 
-    const handleGenerateScript = async () => {
-        setGeneratingScript(true);
-        setError('');
-
-        try {
-            const selectedStyleDetails = STYLES.find(s => s.id === videoStyle)?.prompt || '';
-
-            const res = await fetch(`${API_URL}/api/videos/generate-script`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${session.access_token}`
-                },
-                body: JSON.stringify({ topic, niche, tone, duration, style: selectedStyleDetails })
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) throw new Error(data.error || 'Failed to generate script');
-
-            setScript(data.script);
-            setEditedScript(data.script.fullScript);
-            setStep(4);
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setGeneratingScript(false);
-        }
-    };
-
     const handleGenerate = async () => {
         setGenerating(true);
         setError('');
 
         try {
-            // Update script with edited text
-            const updatedScript = {
-                ...script,
-                fullScript: editedScript
-            };
-
             const selectedStyleDetails = STYLES.find(s => s.id === videoStyle)?.prompt || '';
 
             const res = await fetch(`${API_URL}/api/videos/generate`, {
@@ -150,8 +110,7 @@ function Create({ session }) {
                     tone,
                     duration,
                     voiceId,
-                    style: selectedStyleDetails,
-                    script: updatedScript
+                    style: selectedStyleDetails
                 })
             });
 
@@ -160,7 +119,7 @@ function Create({ session }) {
             if (!res.ok) throw new Error(data.error || 'Failed to start generation');
 
             setJobId(data.jobId);
-            setStep(5);
+            setStep(4);
         } catch (err) {
             setError(err.message);
             setGenerating(false);
@@ -183,7 +142,7 @@ function Create({ session }) {
             <div className="container">
                 {/* Progress Steps */}
                 <div className="create-progress">
-                    {['Niche', 'Style', 'Customize', 'Script', 'Generate'].map((label, i) => (
+                    {['Niche', 'Style', 'Customize', 'Generate'].map((label, i) => (
                         <div key={label} className={`progress-step ${step > i ? 'completed' : ''} ${step === i + 1 ? 'active' : ''}`}>
                             <div className="step-dot">{step > i + 1 ? '✓' : i + 1}</div>
                             <span>{label}</span>
@@ -334,16 +293,16 @@ function Create({ session }) {
                                 <button className="btn btn-ghost" onClick={() => setStep(2)}>← Back</button>
                                 <button
                                     className="btn btn-primary"
-                                    disabled={!topic || generatingScript}
-                                    onClick={handleGenerateScript}
+                                    disabled={!topic || generating}
+                                    onClick={handleGenerate}
                                 >
-                                    {generatingScript ? (
+                                    {generating ? (
                                         <>
                                             <span className="spinner"></span>
-                                            Generating Script...
+                                            Starting...
                                         </>
                                     ) : (
-                                        'Generate Script →'
+                                        'Generate Video →'
                                     )}
                                 </button>
                             </div>
@@ -351,69 +310,8 @@ function Create({ session }) {
                     </div>
                 )}
 
-                {/* Step 4: Script Preview */}
-                {step === 4 && script && (
-                    <div className="create-step animate-fade-in" style={{ maxWidth: 700, margin: '0 auto' }}>
-                        <div className="text-center" style={{ marginBottom: 40 }}>
-                            <h2>Review Your <span className="gradient-text">Script</span></h2>
-                            <p>Edit the script below before generating the video</p>
-                        </div>
-
-                        <div className="script-preview card">
-                            <div className="script-header">
-                                <h4>{script.title}</h4>
-                                <div className="flex gap-sm">
-                                    <span className="badge badge-accent">{script.wordCount} words</span>
-                                    <span className="badge badge-accent">~{script.estimatedDuration}s</span>
-                                </div>
-                            </div>
-
-                            <textarea
-                                className="textarea script-editor"
-                                value={editedScript}
-                                onChange={e => setEditedScript(e.target.value)}
-                                rows={10}
-                            />
-
-                            <div style={{ marginTop: 24 }}>
-                                <h5 style={{ marginBottom: 8, color: 'var(--text-muted)' }}>ElevenLabs TTS Input Preview</h5>
-                                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 8 }}>This is the exact sanitized text that will be sent to the voice AI. Newlines, emojis, dashes, and ellipses are stripped to prevent unnatural pauses.</p>
-                                <textarea
-                                    className="textarea script-editor"
-                                    value={script.cleanScript}
-                                    readOnly
-                                    rows={4}
-                                    style={{ backgroundColor: 'rgba(0,0,0,0.2)', color: 'var(--text-muted)', border: '1px solid var(--glass-border)', fontSize: '0.85rem' }}
-                                />
-                            </div>
-
-                            {script.hashtags && (
-                                <div className="script-hashtags">
-                                    {script.hashtags.map(tag => (
-                                        <span key={tag} className="hashtag">#{tag}</span>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="create-actions">
-                            <button className="btn btn-ghost" onClick={() => setStep(3)}>← Back</button>
-                            <button className="btn btn-primary btn-lg" onClick={handleGenerate} disabled={generating}>
-                                {generating ? (
-                                    <>
-                                        <span className="spinner"></span>
-                                        Starting...
-                                    </>
-                                ) : (
-                                    '🚀 Generate Video'
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* Step 5: Generation Progress */}
-                {step === 5 && (
+                {/* Step 4: Generation Progress */}
+                {step === 4 && (
                     <div className="create-step animate-fade-in text-center" style={{ maxWidth: 500, margin: '0 auto' }}>
                         <div style={{ fontSize: '4rem', marginBottom: 24, animation: 'float 2s ease infinite' }}>
                             {jobStatus?.status === 'completed' ? '🎉' : '🌊'}
@@ -443,7 +341,7 @@ function Create({ session }) {
                                 <p style={{ color: 'var(--danger)', marginBottom: 16 }}>
                                     {jobStatus.error || 'Something went wrong'}
                                 </p>
-                                <button className="btn btn-primary" onClick={() => { setStep(2); setJobId(null); setJobStatus(null); setGenerating(false); }}>
+                                <button className="btn btn-primary" onClick={() => { setStep(3); setJobId(null); setJobStatus(null); setGenerating(false); }}>
                                     Try Again
                                 </button>
                             </div>

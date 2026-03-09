@@ -161,26 +161,6 @@ router.get('/voices', async (req, res) => {
 });
 
 /**
- * POST /api/videos/generate-script
- * Generate just the script (for preview/editing before full generation)
- */
-router.post('/generate-script', authMiddleware, async (req, res) => {
-    try {
-        const { topic, niche, tone, duration, style } = req.body;
-
-        if (!topic || !niche) {
-            return res.status(400).json({ error: 'Topic and niche are required' });
-        }
-
-        const script = await generateScript({ topic, niche, tone, duration, style });
-        res.json({ script });
-    } catch (err) {
-        console.error('Script generation error:', err.message);
-        res.status(500).json({ error: 'Failed to generate script' });
-    }
-});
-
-/**
  * POST /api/videos/generate
  * Full video generation pipeline
  */

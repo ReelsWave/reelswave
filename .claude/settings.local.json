@@ -7,7 +7,8 @@
       "mcp__Claude_Preview__preview_start",
       "Bash(npm run build)",
       "Bash(where npm)",
-      "Bash(where node)"
+      "Bash(where node)",
+      "Bash(xargs grep -l \"plan\\\\|credit\\\\|tier\\\\|pricing\" -i)"
     ]
   }
 }
