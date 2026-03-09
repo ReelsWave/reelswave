@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="135%" y2="135%">
+      <stop offset="0%" stop-color="#0e1420"/>
+      <stop offset="100%" stop-color="#1c0d35"/>
+    </linearGradient>
+    <linearGradient id="wave" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00b2cb"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="6" fill="url(#bg)"/>
+  <!-- 5 waveform bars, tall and bold, filling the icon -->
+  <rect x="2"  y="12" width="4" height="8"  rx="2" fill="url(#wave)" opacity="0.7"/>
+  <rect x="8"  y="7"  width="4" height="18" rx="2" fill="url(#wave)" opacity="0.85"/>
+  <rect x="14" y="3"  width="4" height="26" rx="2" fill="url(#wave)"/>
+  <rect x="20" y="8"  width="4" height="16" rx="2" fill="url(#wave)" opacity="0.85"/>
+  <rect x="26" y="13" width="4" height="7"  rx="2" fill="url(#wave)" opacity="0.7"/>
+</svg>
