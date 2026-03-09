@@ -101,27 +101,29 @@ export async function assembleVideo({ clips, audioPath, outputDir, jobId, script
             let command = ffmpeg(clips[i].path);
 
             if (clips[i].isImage) {
-                // Determine framerate
-                const fps = 25;
-                const frames = Math.ceil(clipDurations[i] * fps) + 50; // extra frames to prevent early freeze
+                // Determine framerate - use 20fps to reduce memory usage
+                const fps = 20;
+                const frames = Math.ceil(clipDurations[i] * fps) + 40;
 
                 command = command.inputOptions(['-loop', '1'])
                     .outputOptions([
+                        '-threads', '1',
                         '-t', String(clipDurations[i]),
-                        '-vf', `format=yuv420p,zoompan=z='zoom+0.0015':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${frames}:s=1080x1920`,
+                        '-vf', `scale=1080:1920,format=yuv420p,zoompan=z='zoom+0.0015':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${frames}:s=1080x1920:fps=${fps}`,
                         '-c:v', 'libx264',
-                        '-preset', 'fast',
+                        '-preset', 'ultrafast',
                         '-crf', '23',
                         '-y'
                     ]);
             } else {
                 command = command.outputOptions([
+                    '-threads', '1',
                     '-t', String(clipDurations[i]),
                     '-vf', 'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1',
                     '-c:v', 'libx264',
-                    '-preset', 'fast',
+                    '-preset', 'ultrafast',
                     '-crf', '23',
-                    '-an', // Remove audio from clips
+                    '-an',
                     '-y'
                 ]);
             }
@@ -152,9 +154,8 @@ export async function assembleVideo({ clips, audioPath, outputDir, jobId, script
             .input(concatListPath)
             .inputOptions(['-f', 'concat', '-safe', '0'])
             .outputOptions([
-                '-c:v', 'libx264',
-                '-preset', 'fast',
-                '-crf', '23',
+                '-threads', '1',
+                '-c', 'copy',
                 '-y'
             ])
             .output(concatenatedPath)
@@ -183,8 +184,9 @@ export async function assembleVideo({ clips, audioPath, outputDir, jobId, script
             .input(concatenatedPath)
             .input(audioPath)
             .outputOptions([
+                '-threads', '1',
                 '-c:v', 'libx264',
-                '-preset', 'fast',
+                '-preset', 'ultrafast',
                 '-crf', '23',
                 '-c:a', 'aac',
                 '-b:a', '192k',
