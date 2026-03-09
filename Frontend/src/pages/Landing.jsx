@@ -25,8 +25,8 @@ const FEATURES = [
 ];
 
 const PRICES = {
-    monthly: { basic: 9, pro: 29, dedicated: 59 },
-    yearly:  { basic: 65, pro: 199, dedicated: 399 },
+    monthly: { basic: 9,  pro: 29,  dedicated: 79  },
+    yearly:  { basic: 90, pro: 290, dedicated: 790 },
 };
 
 function Landing({ session }) {
@@ -284,7 +284,7 @@ function Landing({ session }) {
                             onClick={() => setBilling('yearly')}
                         >
                             Yearly
-                            <span className="billing-save-badge">Save 40%</span>
+                            <span className="billing-save-badge">2 months free</span>
                         </button>
                     </div>
 
@@ -292,7 +292,7 @@ function Landing({ session }) {
                         {/* Basic */}
                         <div className="price-card-v2">
                             <div className="price-card-inner">
-                                <div className="price-tier">Basic</div>
+                                <div className="price-tier">Starter</div>
                                 <div className="price-amount">
                                     {billing === 'yearly'
                                         ? <>${moEquiv.basic}<span>/mo</span></>
@@ -301,16 +301,16 @@ function Landing({ session }) {
                                 {billing === 'yearly' && (
                                     <div className="price-billed-yearly">${price.basic} billed yearly</div>
                                 )}
-                                <div className="price-period">3 videos per week</div>
+                                <div className="price-period">Create on demand</div>
                                 <div className="price-divider" />
                                 <ul className="price-list">
-                                    <li><Check size={16} /> <span>3 videos / week</span></li>
+                                    <li><Check size={16} /> <span>12 videos / month</span></li>
                                     <li><Check size={16} /> <span>All niches &amp; styles</span></li>
                                     <li><Check size={16} /> <span>AI script &amp; voiceover</span></li>
                                     <li><Check size={16} /> <span>No watermark</span></li>
-                                    <li><Check size={16} /> <span>720p export</span></li>
+                                    <li><Check size={16} /> <span>1080p export</span></li>
                                 </ul>
-                                <Link to={`/checkout?plan=basic&billing=${billing}`} className="price-btn">Get Basic</Link>
+                                <Link to={`/checkout?plan=basic&billing=${billing}`} className="price-btn">Get Started</Link>
                             </div>
                         </div>
 
@@ -328,15 +328,16 @@ function Landing({ session }) {
                                 {billing === 'yearly' && (
                                     <div className="price-billed-yearly">${price.pro} billed yearly</div>
                                 )}
-                                <div className="price-period">Post every single day</div>
+                                <div className="price-period">Grow consistently, every day</div>
                                 <div className="price-divider" />
                                 <ul className="price-list">
-                                    <li><Check size={16} /> <span>1 video per day</span></li>
+                                    <li><Check size={16} /> <span>30 videos / month</span></li>
                                     <li><Check size={16} /> <span>All niches &amp; styles</span></li>
                                     <li><Check size={16} /> <span>Premium AI voices</span></li>
                                     <li><Check size={16} /> <span>No watermark</span></li>
                                     <li><Check size={16} /> <span>1080p export</span></li>
-                                    <li className="highlight"><Zap size={14} /> <span>Automatic Growth</span></li>
+                                    <li className="highlight"><Zap size={14} /> <span>Auto Growth — 1 video/day</span></li>
+                                    <li className="highlight"><Zap size={14} /> <span>Multi-platform publishing</span></li>
                                 </ul>
                                 <Link to={`/checkout?plan=pro&billing=${billing}`} className="price-btn primary">Get Pro</Link>
                             </div>
@@ -354,15 +355,17 @@ function Landing({ session }) {
                                 {billing === 'yearly' && (
                                     <div className="price-billed-yearly">${price.dedicated} billed yearly</div>
                                 )}
-                                <div className="price-period">3 videos every day</div>
+                                <div className="price-period">Dominate 3× every day</div>
                                 <div className="price-divider" />
                                 <ul className="price-list">
-                                    <li><Check size={16} /> <span>3 videos per day</span></li>
+                                    <li><Check size={16} /> <span>90 videos / month</span></li>
                                     <li><Check size={16} /> <span>All niches &amp; styles</span></li>
-                                    <li><Check size={16} /> <span>Priority rendering</span></li>
+                                    <li><Check size={16} /> <span>Premium AI voices</span></li>
                                     <li><Check size={16} /> <span>No watermark</span></li>
                                     <li><Check size={16} /> <span>1080p export</span></li>
-                                    <li className="highlight"><Zap size={14} /> <span>Automatic Growth (3×/day)</span></li>
+                                    <li className="highlight"><Zap size={14} /> <span>Auto Growth — 3 videos/day</span></li>
+                                    <li className="highlight"><Zap size={14} /> <span>Per-slot voice &amp; style config</span></li>
+                                    <li className="highlight"><Zap size={14} /> <span>Priority rendering</span></li>
                                 </ul>
                                 <Link to={`/checkout?plan=dedicated&billing=${billing}`} className="price-btn">Get Dedicated</Link>
                             </div>
