@@ -323,7 +323,7 @@ router.get('/connected-profiles', authMiddleware, async (req, res) => {
  */
 router.post('/auto-growth-settings', authMiddleware, async (req, res) => {
     try {
-        const { enabled, time, time2, time3, settings } = req.body;
+        const { enabled, time, time2, time3, settings, settings2, settings3 } = req.body;
         const userId = req.user.id;
 
         // Verify plan
@@ -346,6 +346,8 @@ router.post('/auto-growth-settings', authMiddleware, async (req, res) => {
         if (profile.plan === 'dedicated') {
             updatePayload.auto_growth_time_2 = time2 || null;
             updatePayload.auto_growth_time_3 = time3 || null;
+            updatePayload.auto_growth_settings_2 = settings2 || null;
+            updatePayload.auto_growth_settings_3 = settings3 || null;
         }
 
         const { error } = await supabase

@@ -88,7 +88,7 @@ export function initScheduler() {
 async function runAutoGrowthForUser(user, slot = 1) {
     const jobId = uuidv4();
     const userId = user.id;
-    const settings = user.auto_growth_settings || {};
+    const settings = (slot === 2 ? user.auto_growth_settings_2 : slot === 3 ? user.auto_growth_settings_3 : null) || user.auto_growth_settings || {};
 
     let {
         topic = 'Interesting facts',

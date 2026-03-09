@@ -5,7 +5,7 @@ import {
     Zap, Clock, Activity, Radio, CheckCircle2,
     ArrowRight, Crown, Sparkles, Youtube, Instagram,
     Music2, Power, TrendingUp, SlidersHorizontal, Flame,
-    Wifi, Play
+    Wifi, Play, Mic
 } from 'lucide-react';
 import './Autopilot.css';
 
@@ -104,9 +104,20 @@ function Autopilot({ session }) {
     const [niche, setNiche] = useState('motivational');
     const [tone, setTone] = useState('energetic');
     const [style, setStyle] = useState('cinematic');
+    const [voiceId, setVoiceId] = useState('pNInz6obpgDQGcFmaJgB');
+
+    const DEFAULT_SLOT_CONFIG = { topic: 'Daily motivation for entrepreneurs', niche: 'motivational', tone: 'energetic', style: 'cinematic', voiceId: 'pNInz6obpgDQGcFmaJgB' };
+    const [slot2Config, setSlot2Config] = useState(DEFAULT_SLOT_CONFIG);
+    const [slot3Config, setSlot3Config] = useState(DEFAULT_SLOT_CONFIG);
+    const [activeSlot, setActiveSlot] = useState(1);
+    const [voices, setVoices] = useState([]);
 
     useEffect(() => {
         fetchData();
+        fetch(`${API_URL}/api/videos/voices`)
+            .then(r => r.json())
+            .then(d => setVoices(d.voices || []))
+            .catch(() => {});
     }, []);
 
     const fetchData = async () => {
@@ -131,6 +142,9 @@ function Autopilot({ session }) {
                 setNiche(s.niche || 'motivational');
                 setTone(s.tone || 'energetic');
                 setStyle(s.style || 'cinematic');
+                setVoiceId(s.voiceId || 'pNInz6obpgDQGcFmaJgB');
+                if (profileData.auto_growth_settings_2) setSlot2Config(profileData.auto_growth_settings_2);
+                if (profileData.auto_growth_settings_3) setSlot3Config(profileData.auto_growth_settings_3);
             }
 
             const res = await fetch(`${API_URL}/api/videos/connected-profiles`, {
@@ -159,7 +173,9 @@ function Autopilot({ session }) {
                     time,
                     time2: profile?.plan === 'dedicated' && slot2Enabled ? time2 : null,
                     time3: profile?.plan === 'dedicated' && slot3Enabled ? time3 : null,
-                    settings: { topic: topicPrompt, niche, tone, style }
+                    settings: { topic: topicPrompt, niche, tone, style, voiceId },
+                    settings2: profile?.plan === 'dedicated' ? slot2Config : null,
+                    settings3: profile?.plan === 'dedicated' ? slot3Config : null,
                 })
             });
 
@@ -200,10 +216,35 @@ function Autopilot({ session }) {
         connectedProfiles.some(p => p.platform === platformId);
 
     const isEligible = profile?.plan === 'pro' || profile?.plan === 'dedicated';
+    const isDedicated = profile?.plan === 'dedicated';
     const isLive = isEligible && enabled;
 
-    const selectedNiche = NICHES.find(n => n.id === niche);
-    const selectedTone = TONES.find(t => t.id === tone);
+    // Active slot config helpers for Dedicated tab UI
+    const activeValues = activeSlot === 1
+        ? { topic: topicPrompt, niche, tone, style, voiceId }
+        : activeSlot === 2 ? slot2Config : slot3Config;
+
+    const setActiveValue = (key, value) => {
+        if (activeSlot === 1) {
+            if (key === 'topic') setTopicPrompt(value);
+            else if (key === 'niche') setNiche(value);
+            else if (key === 'tone') setTone(value);
+            else if (key === 'style') setStyle(value);
+            else if (key === 'voiceId') setVoiceId(value);
+        } else if (activeSlot === 2) {
+            setSlot2Config(prev => ({ ...prev, [key]: value }));
+        } else {
+            setSlot3Config(prev => ({ ...prev, [key]: value }));
+        }
+    };
+
+    const selectedNiche = NICHES.find(n => n.id === (isDedicated ? activeValues.niche : niche));
+    const selectedTone = TONES.find(t => t.id === (isDedicated ? activeValues.tone : tone));
+
+    const activeSlotTime = activeSlot === 1 ? time : activeSlot === 2 ? time2 : time3;
+    const setActiveSlotTime = (v) => { if (activeSlot === 1) setTime(v); else if (activeSlot === 2) setTime2(v); else setTime3(v); };
+    const activeSlotEnabled = activeSlot === 1 ? true : activeSlot === 2 ? slot2Enabled : slot3Enabled;
+    const toggleActiveSlot = () => { if (activeSlot === 2) setSlot2Enabled(p => !p); else if (activeSlot === 3) setSlot3Enabled(p => !p); };
 
     if (loading) {
         return (
@@ -370,9 +411,59 @@ function Autopilot({ session }) {
                             <div className="ap-section-line" />
                         </div>
 
+                        {/* Dedicated: Slot Tab Switcher */}
+                        {isDedicated && (
+                            <div className="ap-slot-tabs">
+                                {[1, 2, 3].map(slot => {
+                                    const slotTime = slot === 1 ? time : slot === 2 ? time2 : time3;
+                                    const slotOn = slot === 1 ? true : slot === 2 ? slot2Enabled : slot3Enabled;
+                                    return (
+                                        <button
+                                            key={slot}
+                                            className={`ap-slot-tab ${activeSlot === slot ? 'active' : ''} ${!slotOn && slot !== 1 ? 'ap-slot-tab-off' : ''}`}
+                                            onClick={() => setActiveSlot(slot)}
+                                        >
+                                            <span>Slot {slot}</span>
+                                            <span className="ap-slot-tab-time">{slotOn ? slotTime : 'Off'}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+
                         <div className="ap-engine-layout">
                             {/* LEFT */}
                             <div className="ap-engine-col">
+
+                                {/* Post Time — Pro: static field. Dedicated: per active slot inside tab */}
+                                <div className="ap-field">
+                                    <label className="ap-field-label">
+                                        <Clock size={13} />
+                                        {isDedicated ? `Slot ${activeSlot} Post Time` : 'Daily Post Time'} <span className="ap-field-muted">(UTC)</span>
+                                    </label>
+                                    <div className="ap-time-slots">
+                                        <div className={`ap-time-slot ${isDedicated && activeSlot !== 1 && !activeSlotEnabled ? 'disabled' : ''}`}>
+                                            {isDedicated && activeSlot !== 1 && (
+                                                <button
+                                                    className={`ap-slot-toggle ${activeSlotEnabled ? 'on' : 'off'}`}
+                                                    onClick={toggleActiveSlot}
+                                                />
+                                            )}
+                                            <input
+                                                type="time"
+                                                className="ap-time-input"
+                                                value={isDedicated ? activeSlotTime : time}
+                                                onChange={e => isDedicated ? setActiveSlotTime(e.target.value) : setTime(e.target.value)}
+                                                disabled={isDedicated && activeSlot !== 1 && !activeSlotEnabled}
+                                            />
+                                        </div>
+                                    </div>
+                                    <span className="ap-hint">
+                                        {isDedicated
+                                            ? `Configure time & content separately for each slot. Active: ${[true, slot2Enabled, slot3Enabled].filter(Boolean).length} of 3 slots.`
+                                            : 'Engine fires at exactly this time — 365 days a year, automatically.'}
+                                    </span>
+                                </div>
 
                                 {/* AI Prompt */}
                                 <div className="ap-field">
@@ -384,68 +475,32 @@ function Autopilot({ session }) {
                                         className="ap-textarea"
                                         rows={4}
                                         placeholder="e.g., Daily mind-blowing facts that make people question reality"
-                                        value={topicPrompt}
-                                        onChange={e => setTopicPrompt(e.target.value)}
+                                        value={isDedicated ? activeValues.topic : topicPrompt}
+                                        onChange={e => isDedicated ? setActiveValue('topic', e.target.value) : setTopicPrompt(e.target.value)}
                                     />
                                     <span className="ap-hint">
                                         The AI uses this to craft a unique, never-repeated script every single day.
                                     </span>
                                 </div>
 
-                                {/* Post Time */}
+                                {/* Voice */}
                                 <div className="ap-field">
                                     <label className="ap-field-label">
-                                        <Clock size={13} />
-                                        {profile?.plan === 'dedicated' ? 'Post Times' : 'Daily Post Time'} <span className="ap-field-muted">(UTC)</span>
+                                        <Mic size={13} />
+                                        Voice
                                     </label>
-                                    <div className="ap-time-slots">
-                                        <div className="ap-time-slot">
-                                            {profile?.plan === 'dedicated' && <span className="ap-time-slot-label">Slot 1</span>}
-                                            <input
-                                                type="time"
-                                                className="ap-time-input"
-                                                value={time}
-                                                onChange={e => setTime(e.target.value)}
-                                            />
-                                        </div>
-                                        {profile?.plan === 'dedicated' && (
-                                            <>
-                                                <div className={`ap-time-slot ${!slot2Enabled ? 'disabled' : ''}`}>
-                                                    <span className="ap-time-slot-label">Slot 2</span>
-                                                    <button
-                                                        className={`ap-slot-toggle ${slot2Enabled ? 'on' : 'off'}`}
-                                                        onClick={() => setSlot2Enabled(!slot2Enabled)}
-                                                    />
-                                                    <input
-                                                        type="time"
-                                                        className="ap-time-input"
-                                                        value={time2}
-                                                        onChange={e => setTime2(e.target.value)}
-                                                        disabled={!slot2Enabled}
-                                                    />
-                                                </div>
-                                                <div className={`ap-time-slot ${!slot3Enabled ? 'disabled' : ''}`}>
-                                                    <span className="ap-time-slot-label">Slot 3</span>
-                                                    <button
-                                                        className={`ap-slot-toggle ${slot3Enabled ? 'on' : 'off'}`}
-                                                        onClick={() => setSlot3Enabled(!slot3Enabled)}
-                                                    />
-                                                    <input
-                                                        type="time"
-                                                        className="ap-time-input"
-                                                        value={time3}
-                                                        onChange={e => setTime3(e.target.value)}
-                                                        disabled={!slot3Enabled}
-                                                    />
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                    <span className="ap-hint">
-                                        {profile?.plan === 'dedicated'
-                                            ? 'Engine fires at all 3 times — 3 videos posted every single day.'
-                                            : 'Engine fires at exactly this time — 365 days a year, automatically.'}
-                                    </span>
+                                    <select
+                                        className="ap-voice-select"
+                                        value={isDedicated ? activeValues.voiceId : voiceId}
+                                        onChange={e => isDedicated ? setActiveValue('voiceId', e.target.value) : setVoiceId(e.target.value)}
+                                    >
+                                        {voices.length === 0
+                                            ? <option>Loading voices...</option>
+                                            : voices.map(v => (
+                                                <option key={v.voice_id} value={v.voice_id}>{v.name}</option>
+                                            ))
+                                        }
+                                    </select>
                                 </div>
 
                                 {/* Voice Tone */}
@@ -458,8 +513,8 @@ function Autopilot({ session }) {
                                         {TONES.map(t => (
                                             <button
                                                 key={t.id}
-                                                className={`ap-pill ${tone === t.id ? 'selected' : ''}`}
-                                                onClick={() => setTone(t.id)}
+                                                className={`ap-pill ${(isDedicated ? activeValues.tone : tone) === t.id ? 'selected' : ''}`}
+                                                onClick={() => isDedicated ? setActiveValue('tone', t.id) : setTone(t.id)}
                                             >
                                                 {t.label}
                                             </button>
@@ -481,9 +536,9 @@ function Autopilot({ session }) {
                                         {NICHES.map(n => (
                                             <button
                                                 key={n.id}
-                                                className={`ap-niche-btn ${niche === n.id ? 'selected' : ''}`}
+                                                className={`ap-niche-btn ${(isDedicated ? activeValues.niche : niche) === n.id ? 'selected' : ''}`}
                                                 style={{ '--nc': n.color }}
-                                                onClick={() => setNiche(n.id)}
+                                                onClick={() => isDedicated ? setActiveValue('niche', n.id) : setNiche(n.id)}
                                             >
                                                 <span className="ap-niche-emoji">{n.emoji}</span>
                                                 <span className="ap-niche-name">{n.name}</span>
@@ -502,8 +557,8 @@ function Autopilot({ session }) {
                                         {STYLES.map(s => (
                                             <button
                                                 key={s.id}
-                                                className={`ap-style-btn ${style === s.id ? 'selected' : ''}`}
-                                                onClick={() => setStyle(s.id)}
+                                                className={`ap-style-btn ${(isDedicated ? activeValues.style : style) === s.id ? 'selected' : ''}`}
+                                                onClick={() => isDedicated ? setActiveValue('style', s.id) : setStyle(s.id)}
                                             >
                                                 <span>{s.icon}</span>
                                                 <span>{s.name}</span>
@@ -529,7 +584,9 @@ function Autopilot({ session }) {
                                 <span>
                                     {isLive
                                         ? profile?.plan === 'dedicated'
-                                            ? `Publishing ${selectedNiche?.emoji} ${selectedNiche?.name} at ${[time, slot2Enabled && time2, slot3Enabled && time3].filter(Boolean).join(', ')} UTC · ${selectedTone?.label} tone`
+                                            ? isDedicated
+                                            ? `Publishing at ${[time, slot2Enabled && time2, slot3Enabled && time3].filter(Boolean).join(', ')} UTC · ${[time, slot2Enabled, slot3Enabled].filter(Boolean).length} slot${[time, slot2Enabled && time2, slot3Enabled && time3].filter(Boolean).length > 1 ? 's' : ''} active`
+                                            : `Publishing ${selectedNiche?.emoji} ${selectedNiche?.name} videos at ${time} UTC · ${selectedTone?.label} tone`
                                             : `Publishing ${selectedNiche?.emoji} ${selectedNiche?.name} videos at ${time} UTC · ${selectedTone?.label} tone`
                                         : 'Engine paused — toggle power on to activate daily publishing'
                                     }
