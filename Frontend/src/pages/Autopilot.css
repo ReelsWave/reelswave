@@ -942,6 +942,65 @@
     font-weight: 600;
 }
 
+/* ── Duration Buttons ── */
+.ap-duration-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+.ap-duration-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 10px 6px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: var(--font-main);
+}
+
+.ap-dur-label {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    transition: color 0.2s ease;
+}
+
+.ap-dur-sub {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.ap-duration-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+    transform: translateY(-1px);
+}
+
+.ap-duration-btn:hover .ap-dur-label {
+    color: var(--text-primary);
+}
+
+.ap-duration-btn.selected {
+    background: var(--accent-light);
+    border-color: rgba(0, 178, 203, 0.45);
+}
+
+.ap-duration-btn.selected .ap-dur-label {
+    color: var(--accent);
+}
+
+.ap-duration-btn.selected .ap-dur-sub {
+    color: rgba(0, 178, 203, 0.7);
+}
+
 /* ── Save Reminder ── */
 .ap-save-reminder {
     display: flex;

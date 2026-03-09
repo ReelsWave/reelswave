@@ -5,7 +5,7 @@ import {
     Zap, Clock, Activity, Radio, CheckCircle2,
     ArrowRight, Crown, Sparkles, Youtube, Instagram,
     Music2, Power, TrendingUp, SlidersHorizontal, Flame,
-    Wifi, Play, Mic
+    Wifi, Play, Mic, Timer
 } from 'lucide-react';
 import './Autopilot.css';
 
@@ -46,6 +46,13 @@ const STYLES = [
     { id: 'cyberpunk', name: 'Neon', icon: '🏙️' },
     { id: 'toy_bricks', name: 'Lego', icon: '🧱' },
     { id: 'vintage_photo', name: 'Polaroid', icon: '📸' },
+];
+
+const DURATIONS = [
+    { value: 30, label: '30s', sub: '~75 words' },
+    { value: 45, label: '45s', sub: '~115 words' },
+    { value: 60, label: '60s', sub: '~150 words' },
+    { value: 90, label: '90s', sub: '~225 words' },
 ];
 
 const PLATFORMS = [
@@ -105,8 +112,9 @@ function Autopilot({ session }) {
     const [tone, setTone] = useState('energetic');
     const [style, setStyle] = useState('cinematic');
     const [voiceId, setVoiceId] = useState('pNInz6obpgDQGcFmaJgB');
+    const [duration, setDuration] = useState(60);
 
-    const DEFAULT_SLOT_CONFIG = { topic: 'Daily motivation for entrepreneurs', niche: 'motivational', tone: 'energetic', style: 'cinematic', voiceId: 'pNInz6obpgDQGcFmaJgB' };
+    const DEFAULT_SLOT_CONFIG = { topic: 'Daily motivation for entrepreneurs', niche: 'motivational', tone: 'energetic', style: 'cinematic', voiceId: 'pNInz6obpgDQGcFmaJgB', duration: 60 };
     const [slot2Config, setSlot2Config] = useState(DEFAULT_SLOT_CONFIG);
     const [slot3Config, setSlot3Config] = useState(DEFAULT_SLOT_CONFIG);
     const [activeSlot, setActiveSlot] = useState(1);
@@ -143,6 +151,7 @@ function Autopilot({ session }) {
                 setTone(s.tone || 'energetic');
                 setStyle(s.style || 'cinematic');
                 setVoiceId(s.voiceId || 'pNInz6obpgDQGcFmaJgB');
+                setDuration(s.duration || 60);
                 if (profileData.auto_growth_settings_2) setSlot2Config(profileData.auto_growth_settings_2);
                 if (profileData.auto_growth_settings_3) setSlot3Config(profileData.auto_growth_settings_3);
             }
@@ -173,7 +182,7 @@ function Autopilot({ session }) {
                     time,
                     time2: profile?.plan === 'dedicated' && slot2Enabled ? time2 : null,
                     time3: profile?.plan === 'dedicated' && slot3Enabled ? time3 : null,
-                    settings: { topic: topicPrompt, niche, tone, style, voiceId },
+                    settings: { topic: topicPrompt, niche, tone, style, voiceId, duration },
                     settings2: profile?.plan === 'dedicated' ? slot2Config : null,
                     settings3: profile?.plan === 'dedicated' ? slot3Config : null,
                 })
@@ -221,7 +230,7 @@ function Autopilot({ session }) {
 
     // Active slot config helpers for Dedicated tab UI
     const activeValues = activeSlot === 1
-        ? { topic: topicPrompt, niche, tone, style, voiceId }
+        ? { topic: topicPrompt, niche, tone, style, voiceId, duration }
         : activeSlot === 2 ? slot2Config : slot3Config;
 
     const setActiveValue = (key, value) => {
@@ -231,6 +240,7 @@ function Autopilot({ session }) {
             else if (key === 'tone') setTone(value);
             else if (key === 'style') setStyle(value);
             else if (key === 'voiceId') setVoiceId(value);
+            else if (key === 'duration') setDuration(value);
         } else if (activeSlot === 2) {
             setSlot2Config(prev => ({ ...prev, [key]: value }));
         } else {
@@ -517,6 +527,26 @@ function Autopilot({ session }) {
                                                 onClick={() => isDedicated ? setActiveValue('tone', t.id) : setTone(t.id)}
                                             >
                                                 {t.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Video Length */}
+                                <div className="ap-field">
+                                    <label className="ap-field-label">
+                                        <Timer size={13} />
+                                        Video Length
+                                    </label>
+                                    <div className="ap-duration-row">
+                                        {DURATIONS.map(d => (
+                                            <button
+                                                key={d.value}
+                                                className={`ap-duration-btn ${(isDedicated ? activeValues.duration : duration) === d.value ? 'selected' : ''}`}
+                                                onClick={() => isDedicated ? setActiveValue('duration', d.value) : setDuration(d.value)}
+                                            >
+                                                <span className="ap-dur-label">{d.label}</span>
+                                                <span className="ap-dur-sub">{d.sub}</span>
                                             </button>
                                         ))}
                                     </div>
