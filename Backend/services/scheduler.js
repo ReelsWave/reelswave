@@ -5,6 +5,7 @@ import { generateVoiceover } from './voiceGenerator.js';
 import { fetchStockFootage } from './stockFetcher.js';
 import { assembleVideo } from './videoAssembler.js';
 import { uploadVideo, getConnectedProfiles } from './lateService.js';
+import { acquire, release } from './semaphore.js';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import fs from 'fs';
@@ -108,6 +109,8 @@ async function runAutoGrowthForUser(user, slot = 1) {
     if (!fs.existsSync(jobDir)) {
         fs.mkdirSync(jobDir, { recursive: true });
     }
+
+    await acquire();
 
     try {
         // Step 1: Generate Script
@@ -214,5 +217,7 @@ async function runAutoGrowthForUser(user, slot = 1) {
 
     } catch (err) {
         console.error(`[Auto Growth ${userId}] ERROR:`, err.message);
+    } finally {
+        release();
     }
 }

@@ -8,6 +8,7 @@ import { generateVoiceover, getVoices } from '../services/voiceGenerator.js';
 import { fetchStockFootage } from '../services/stockFetcher.js';
 import { assembleVideo } from '../services/videoAssembler.js';
 import { getConnectUrl, getConnectedProfiles, createLateProfile } from '../services/lateService.js';
+import { acquire, release } from '../services/semaphore.js';
 
 const router = express.Router();
 const OUTPUT_DIR = path.resolve('output');
@@ -17,41 +18,24 @@ if (!fs.existsSync(OUTPUT_DIR)) {
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 }
 
-// In-memory job tracking & queue
+// In-memory job tracking
 const jobs = new Map();
-const jobQueue = [];
-let isProcessing = false;
 
-const processNextJob = async () => {
-    if (jobQueue.length === 0) {
-        isProcessing = false;
-        return;
-    }
-
-    isProcessing = true;
-    const currentJob = jobQueue.shift();
-    const { jobId, userId, topic, niche, tone, duration, voiceId, style, providedScript, profile } = currentJob;
-
-    // Update queue position for remaining jobs
-    jobQueue.forEach((job, index) => {
-        const jobData = jobs.get(job.jobId);
-        if (jobData) {
-            jobs.set(job.jobId, { ...jobData, position: index + 1 });
-        }
-    });
-
+const processJob = async (jobId, userId, topic, niche, tone, duration, voiceId, style, providedScript, profile) => {
     // Define job-specific output directory
     const jobDir = path.join(OUTPUT_DIR, jobId);
     if (!fs.existsSync(jobDir)) {
         fs.mkdirSync(jobDir, { recursive: true });
     }
 
+    await acquire();
+    jobs.set(jobId, { ...jobs.get(jobId), status: 'generating_script', progress: 15, position: 0 });
+
     try {
         // Step 1: Generate or use provided script
-        jobs.set(jobId, { ...jobs.get(jobId), status: 'generating_script', progress: 15, position: 0 });
         const script = providedScript || await generateScript({ topic, niche, tone, duration, style });
 
-        // Step 2: Generate Voiceover (using clean text without emojis/markdown)
+        // Step 2: Generate Voiceover
         jobs.set(jobId, { ...jobs.get(jobId), status: 'generating_voiceover', progress: 30 });
         console.log(`[Job ${jobId}] Generating voiceover using clean script...`);
         const { audioPath, timestamps } = await generateVoiceover({
@@ -142,7 +126,7 @@ const processNextJob = async () => {
         console.error('Video generation error:', err);
         jobs.set(jobId, { ...jobs.get(jobId), status: 'failed', progress: 0, error: err.message });
     } finally {
-        processNextJob();
+        release();
     }
 };
 
@@ -191,36 +175,20 @@ router.post('/generate', authMiddleware, async (req, res) => {
         }
 
         // Initialize job tracking
-        const position = jobQueue.length + 1;
         jobs.set(jobId, {
-            status: position === 1 && !isProcessing ? 'generating_script' : 'queued',
-            progress: position === 1 && !isProcessing ? 10 : 0,
-            position: position === 1 && !isProcessing ? 0 : position,
+            status: 'queued',
+            progress: 0,
+            position: 0,
             userId,
             createdAt: new Date().toISOString()
         });
 
-        // Queue the job
-        jobQueue.push({
-            jobId,
-            userId,
-            topic,
-            niche,
-            tone,
-            duration,
-            voiceId,
-            style,
-            providedScript,
-            profile
-        });
-
-        // Start processing if not already running
-        if (!isProcessing) {
-            processNextJob();
-        }
+        // Start processing (semaphore handles concurrency limit)
+        processJob(jobId, userId, topic, niche, tone, duration, voiceId, style, providedScript, profile)
+            .catch(err => console.error(`Job ${jobId} failed:`, err.message));
 
         // Return job ID immediately
-        res.json({ jobId, status: 'queued', position });
+        res.json({ jobId, status: 'queued' });
 
     } catch (err) {
         console.error('Generate error:', err.message);

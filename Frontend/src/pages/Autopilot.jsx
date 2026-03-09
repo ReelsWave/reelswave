@@ -98,6 +98,8 @@ function Autopilot({ session }) {
     const [time, setTime] = useState('09:00');
     const [time2, setTime2] = useState('14:00');
     const [time3, setTime3] = useState('20:00');
+    const [slot2Enabled, setSlot2Enabled] = useState(true);
+    const [slot3Enabled, setSlot3Enabled] = useState(true);
     const [topicPrompt, setTopicPrompt] = useState('Daily motivation for entrepreneurs');
     const [niche, setNiche] = useState('motivational');
     const [tone, setTone] = useState('energetic');
@@ -122,6 +124,8 @@ function Autopilot({ session }) {
                 setTime(profileData.auto_growth_time || '09:00');
                 setTime2(profileData.auto_growth_time_2 || '14:00');
                 setTime3(profileData.auto_growth_time_3 || '20:00');
+                setSlot2Enabled(!!profileData.auto_growth_time_2);
+                setSlot3Enabled(!!profileData.auto_growth_time_3);
                 const s = profileData.auto_growth_settings || {};
                 setTopicPrompt(s.topic || 'Daily motivation for entrepreneurs');
                 setNiche(s.niche || 'motivational');
@@ -153,8 +157,8 @@ function Autopilot({ session }) {
                 body: JSON.stringify({
                     enabled,
                     time,
-                    time2: profile?.plan === 'dedicated' ? time2 : null,
-                    time3: profile?.plan === 'dedicated' ? time3 : null,
+                    time2: profile?.plan === 'dedicated' && slot2Enabled ? time2 : null,
+                    time3: profile?.plan === 'dedicated' && slot3Enabled ? time3 : null,
                     settings: { topic: topicPrompt, niche, tone, style }
                 })
             });
@@ -406,22 +410,32 @@ function Autopilot({ session }) {
                                         </div>
                                         {profile?.plan === 'dedicated' && (
                                             <>
-                                                <div className="ap-time-slot">
+                                                <div className={`ap-time-slot ${!slot2Enabled ? 'disabled' : ''}`}>
                                                     <span className="ap-time-slot-label">Slot 2</span>
+                                                    <button
+                                                        className={`ap-slot-toggle ${slot2Enabled ? 'on' : 'off'}`}
+                                                        onClick={() => setSlot2Enabled(!slot2Enabled)}
+                                                    />
                                                     <input
                                                         type="time"
                                                         className="ap-time-input"
                                                         value={time2}
                                                         onChange={e => setTime2(e.target.value)}
+                                                        disabled={!slot2Enabled}
                                                     />
                                                 </div>
-                                                <div className="ap-time-slot">
+                                                <div className={`ap-time-slot ${!slot3Enabled ? 'disabled' : ''}`}>
                                                     <span className="ap-time-slot-label">Slot 3</span>
+                                                    <button
+                                                        className={`ap-slot-toggle ${slot3Enabled ? 'on' : 'off'}`}
+                                                        onClick={() => setSlot3Enabled(!slot3Enabled)}
+                                                    />
                                                     <input
                                                         type="time"
                                                         className="ap-time-input"
                                                         value={time3}
                                                         onChange={e => setTime3(e.target.value)}
+                                                        disabled={!slot3Enabled}
                                                     />
                                                 </div>
                                             </>
@@ -515,7 +529,7 @@ function Autopilot({ session }) {
                                 <span>
                                     {isLive
                                         ? profile?.plan === 'dedicated'
-                                            ? `Publishing ${selectedNiche?.emoji} ${selectedNiche?.name} at ${time}, ${time2}, ${time3} UTC · ${selectedTone?.label} tone`
+                                            ? `Publishing ${selectedNiche?.emoji} ${selectedNiche?.name} at ${[time, slot2Enabled && time2, slot3Enabled && time3].filter(Boolean).join(', ')} UTC · ${selectedTone?.label} tone`
                                             : `Publishing ${selectedNiche?.emoji} ${selectedNiche?.name} videos at ${time} UTC · ${selectedTone?.label} tone`
                                         : 'Engine paused — toggle power on to activate daily publishing'
                                     }
