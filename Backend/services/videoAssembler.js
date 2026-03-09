@@ -101,18 +101,18 @@ export async function assembleVideo({ clips, audioPath, outputDir, jobId, script
             let command = ffmpeg(clips[i].path);
 
             if (clips[i].isImage) {
-                // Determine framerate - use 20fps to reduce memory usage
-                const fps = 20;
-                const frames = Math.ceil(clipDurations[i] * fps) + 40;
+                // Determine framerate
+                const fps = 25;
+                const frames = Math.ceil(clipDurations[i] * fps) + 50;
 
                 command = command.inputOptions(['-loop', '1'])
                     .outputOptions([
                         '-threads', '1',
                         '-t', String(clipDurations[i]),
-                        '-vf', `scale=1080:1920,format=yuv420p,zoompan=z='zoom+0.0015':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${frames}:s=1080x1920:fps=${fps}`,
+                        '-vf', `format=yuv420p,zoompan=z='zoom+0.0015':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${frames}:s=1080x1920`,
                         '-c:v', 'libx264',
-                        '-preset', 'ultrafast',
-                        '-crf', '23',
+                        '-preset', 'fast',
+                        '-crf', '28',
                         '-y'
                     ]);
             } else {
@@ -121,8 +121,8 @@ export async function assembleVideo({ clips, audioPath, outputDir, jobId, script
                     '-t', String(clipDurations[i]),
                     '-vf', 'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1',
                     '-c:v', 'libx264',
-                    '-preset', 'ultrafast',
-                    '-crf', '23',
+                    '-preset', 'fast',
+                    '-crf', '28',
                     '-an',
                     '-y'
                 ]);
@@ -186,8 +186,8 @@ export async function assembleVideo({ clips, audioPath, outputDir, jobId, script
             .outputOptions([
                 '-threads', '1',
                 '-c:v', 'libx264',
-                '-preset', 'ultrafast',
-                '-crf', '23',
+                '-preset', 'fast',
+                '-crf', '28',
                 '-c:a', 'aac',
                 '-b:a', '192k',
                 '-shortest',
@@ -247,7 +247,7 @@ PlayResY: 1920
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,Arial,110,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,8,6,5,20,20,0,1
+Style: Default,Liberation Sans,110,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,8,6,5,20,20,0,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
