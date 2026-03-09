@@ -8,7 +8,10 @@
       "Bash(npm run build)",
       "Bash(where npm)",
       "Bash(where node)",
-      "Bash(xargs grep -l \"plan\\\\|credit\\\\|tier\\\\|pricing\" -i)"
+      "Bash(xargs grep -l \"plan\\\\|credit\\\\|tier\\\\|pricing\" -i)",
+      "Bash(npm install @ffmpeg-installer/ffmpeg @ffprobe-installer/ffprobe)",
+      "Bash(npm uninstall @ffmpeg-installer/ffmpeg @ffprobe-installer/ffprobe)",
+      "Bash(npm install ffmpeg-static ffprobe-static)"
     ]
   }
 }

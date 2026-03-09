@@ -1,6 +1,13 @@
 import ffmpeg from 'fluent-ffmpeg';
+import ffmpegStatic from 'ffmpeg-static';
+import ffprobeStatic from 'ffprobe-static';
 import fs from 'fs';
 import path from 'path';
+
+console.log('[videoAssembler] ffmpeg path:', ffmpegStatic);
+console.log('[videoAssembler] ffprobe path:', ffprobeStatic.path);
+ffmpeg.setFfmpegPath(ffmpegStatic);
+ffmpeg.setFfprobePath(ffprobeStatic.path);
 
 /**
  * Assemble final video from clips, voiceover, and captions
