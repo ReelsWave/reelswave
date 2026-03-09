@@ -13,7 +13,8 @@
       "Bash(npm uninstall @ffmpeg-installer/ffmpeg @ffprobe-installer/ffprobe)",
       "Bash(npm install ffmpeg-static ffprobe-static)",
       "Bash(npm uninstall ffmpeg-static ffprobe-static)",
-      "Bash(npm install)"
+      "Bash(npm install)",
+      "Bash(del \"C:\\\\Users\\\\kfits\\\\Projects\\\\ReelsWave\\\\Frontend\\\\public\\\\favicon.svg\")"
     ]
   }
 }

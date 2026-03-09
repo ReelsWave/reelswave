@@ -49,10 +49,8 @@ const STYLES = [
 ];
 
 const DURATIONS = [
-    { value: 30, label: '30s', sub: '~75 words' },
-    { value: 45, label: '45s', sub: '~115 words' },
-    { value: 60, label: '60s', sub: '~150 words' },
-    { value: 90, label: '90s', sub: '~225 words' },
+    { value: 45, label: '30–60s', sub: 'Short form' },
+    { value: 75, label: '60–90s', sub: 'Long form', monetized: true },
 ];
 
 const PLATFORMS = [
@@ -112,9 +110,9 @@ function Autopilot({ session }) {
     const [tone, setTone] = useState('energetic');
     const [style, setStyle] = useState('cinematic');
     const [voiceId, setVoiceId] = useState('pNInz6obpgDQGcFmaJgB');
-    const [duration, setDuration] = useState(60);
+    const [duration, setDuration] = useState(75);
 
-    const DEFAULT_SLOT_CONFIG = { topic: 'Daily motivation for entrepreneurs', niche: 'motivational', tone: 'energetic', style: 'cinematic', voiceId: 'pNInz6obpgDQGcFmaJgB', duration: 60 };
+    const DEFAULT_SLOT_CONFIG = { topic: 'Daily motivation for entrepreneurs', niche: 'motivational', tone: 'energetic', style: 'cinematic', voiceId: 'pNInz6obpgDQGcFmaJgB', duration: 75 };
     const [slot2Config, setSlot2Config] = useState(DEFAULT_SLOT_CONFIG);
     const [slot3Config, setSlot3Config] = useState(DEFAULT_SLOT_CONFIG);
     const [activeSlot, setActiveSlot] = useState(1);
@@ -151,7 +149,7 @@ function Autopilot({ session }) {
                 setTone(s.tone || 'energetic');
                 setStyle(s.style || 'cinematic');
                 setVoiceId(s.voiceId || 'pNInz6obpgDQGcFmaJgB');
-                setDuration(s.duration || 60);
+                setDuration(s.duration || 75);
                 if (profileData.auto_growth_settings_2) setSlot2Config(profileData.auto_growth_settings_2);
                 if (profileData.auto_growth_settings_3) setSlot3Config(profileData.auto_growth_settings_3);
             }
@@ -507,7 +505,7 @@ function Autopilot({ session }) {
                                         {voices.length === 0
                                             ? <option>Loading voices...</option>
                                             : voices.map(v => (
-                                                <option key={v.voice_id} value={v.voice_id}>{v.name}</option>
+                                                <option key={v.id} value={v.id}>{v.name}</option>
                                             ))
                                         }
                                     </select>
@@ -546,7 +544,10 @@ function Autopilot({ session }) {
                                                 onClick={() => isDedicated ? setActiveValue('duration', d.value) : setDuration(d.value)}
                                             >
                                                 <span className="ap-dur-label">{d.label}</span>
-                                                <span className="ap-dur-sub">{d.sub}</span>
+                                                <span className="ap-dur-sub">
+                                                    {d.sub}
+                                                    {d.monetized && <span className="ap-dur-money">💰 Monetizable</span>}
+                                                </span>
                                             </button>
                                         ))}
                                     </div>
