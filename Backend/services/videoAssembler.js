@@ -2,6 +2,24 @@ import ffmpeg from 'fluent-ffmpeg';
 import fs from 'fs';
 import path from 'path';
 
+// Find ffmpeg/ffprobe - try system paths first, then npm static packages
+function findBinary(name, systemPaths) {
+    for (const p of systemPaths) {
+        if (fs.existsSync(p)) {
+            console.log(`[videoAssembler] Found ${name} at: ${p}`);
+            return p;
+        }
+    }
+    console.log(`[videoAssembler] ${name} not found at system paths, will rely on PATH`);
+    return name;
+}
+
+const ffmpegPath = findBinary('ffmpeg', ['/usr/bin/ffmpeg', '/usr/local/bin/ffmpeg']);
+const ffprobePath = findBinary('ffprobe', ['/usr/bin/ffprobe', '/usr/local/bin/ffprobe']);
+
+ffmpeg.setFfmpegPath(ffmpegPath);
+ffmpeg.setFfprobePath(ffprobePath);
+
 /**
  * Assemble final video from clips, voiceover, and captions
  * @param {Object} options
@@ -100,7 +118,6 @@ export async function assembleVideo({ clips, audioPath, outputDir, jobId, script
 
                 command = command.inputOptions(['-loop', '1'])
                     .outputOptions([
-
                         '-t', String(clipDurations[i]),
                         '-vf', `format=yuv420p,zoompan=z='zoom+0.0015':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${frames}:s=1080x1920`,
                         '-c:v', 'libx264',
@@ -110,7 +127,6 @@ export async function assembleVideo({ clips, audioPath, outputDir, jobId, script
                     ]);
             } else {
                 command = command.outputOptions([
-                    '-threads', '1',
                     '-t', String(clipDurations[i]),
                     '-vf', 'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1',
                     '-c:v', 'libx264',
@@ -147,7 +163,6 @@ export async function assembleVideo({ clips, audioPath, outputDir, jobId, script
             .input(concatListPath)
             .inputOptions(['-f', 'concat', '-safe', '0'])
             .outputOptions([
-                '-threads', '1',
                 '-c', 'copy',
                 '-y'
             ])
@@ -177,7 +192,6 @@ export async function assembleVideo({ clips, audioPath, outputDir, jobId, script
             .input(concatenatedPath)
             .input(audioPath)
             .outputOptions([
-                '-threads', '1',
                 '-c:v', 'libx264',
                 '-preset', 'fast',
                 '-crf', '28',
