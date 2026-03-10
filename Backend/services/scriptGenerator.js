@@ -71,7 +71,7 @@ CRITICAL RULE FOR IMAGE PROMPTS:
     messages: [{ role: 'user', content: prompt }],
     response_format: { type: 'json_object' },
     temperature: 0.8,
-    max_tokens: 16384
+    max_completion_tokens: 16384
   });
 
   let scriptText = response.choices[0].message.content;
