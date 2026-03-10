@@ -300,6 +300,7 @@ function Autopilot({ session }) {
     }
 
     return (
+        <>
         <div className="ap-page page-enter">
             {/* ── Ambient Background ── */}
             <div className="ap-ambient" aria-hidden="true">
@@ -763,6 +764,7 @@ function Autopilot({ session }) {
                 </div>
             </div>
         )}
+        </>
     );
 }
 
