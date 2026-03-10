@@ -92,8 +92,8 @@ CRITICAL RULE FOR IMAGE PROMPTS:
     .replace(/\*\*/g, '')
     .replace(/_/g, '')
     .replace(/[\n\r]+/g, ' ') // Remove newlines
-    .replace(/\.{2,}/g, '.') // Replace ellipses with a single period
-    .replace(/[-—]/g, ' ') // Replace dashes with spaces
+    .replace(/\.{2,}/g, ', ') // Replace ellipses with a brief pause (comma) rather than a full stop
+    .replace(/[-—]/g, ', ') // Replace dashes with a comma-pause so delivery breathes naturally
     .replace(/\s+/g, ' ')
     .trim();
 

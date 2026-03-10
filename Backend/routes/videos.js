@@ -42,7 +42,9 @@ const processJob = async (jobId, userId, topic, niche, tone, duration, voiceId, 
             text: script.cleanScript,
             voiceId,
             outputDir: OUTPUT_DIR,
-            jobId
+            jobId,
+            niche,
+            tone
         });
         console.log(`[Job ${jobId}] Voiceover complete: ${audioPath}`);
 

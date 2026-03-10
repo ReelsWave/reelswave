@@ -33,24 +33,33 @@ export async function getVoices() {
  * @param {string} options.jobId - Unique job identifier for filename
  * @returns {Object} Path to generated audio file and duration info
  */
-export async function generateVoiceover({ text, voiceId, outputDir, jobId }) {
+// Voice settings tuned per niche — controls expressiveness, energy, and emotional range
+const NICHE_VOICE_SETTINGS = {
+    scary:        { stability: 0.18, similarity_boost: 0.82, style: 0.92, use_speaker_boost: true },  // tense, whispery, unpredictable
+    motivational: { stability: 0.28, similarity_boost: 0.78, style: 0.88, use_speaker_boost: true },  // pumped up, soaring
+    fitness:      { stability: 0.22, similarity_boost: 0.78, style: 0.90, use_speaker_boost: true },  // aggressive, high-energy
+    funfacts:     { stability: 0.42, similarity_boost: 0.76, style: 0.68, use_speaker_boost: true },  // upbeat, conversational
+    lifehacks:    { stability: 0.48, similarity_boost: 0.78, style: 0.60, use_speaker_boost: true },  // clear, friendly
+    cooking:      { stability: 0.50, similarity_boost: 0.80, style: 0.55, use_speaker_boost: true },  // warm, inviting
+    finance:      { stability: 0.58, similarity_boost: 0.82, style: 0.48, use_speaker_boost: true },  // authoritative, measured
+    science:      { stability: 0.52, similarity_boost: 0.80, style: 0.52, use_speaker_boost: true },  // curious, clear
+    default:      { stability: 0.35, similarity_boost: 0.75, style: 0.75, use_speaker_boost: true },
+};
+
+export async function generateVoiceover({ text, voiceId, outputDir, jobId, niche = '', tone = '' }) {
     // Default to a good narrator voice if none specified
     const selectedVoiceId = voiceId || 'pNInz6obpgDQGcFmaJgB'; // "Adam" voice
+
+    // Pick settings by niche, fall back to tone keyword match, then default
+    const nicheKey = niche?.toLowerCase().replace(/\s+/g, '');
+    const voiceSettings = NICHE_VOICE_SETTINGS[nicheKey] || NICHE_VOICE_SETTINGS[tone?.toLowerCase()] || NICHE_VOICE_SETTINGS.default;
 
     const response = await axios.post(
         `${ELEVENLABS_API_URL}/text-to-speech/${selectedVoiceId}/with-timestamps`,
         {
             text,
             model_id: 'eleven_multilingual_v2',
-            voice_settings: {
-                // Lower stability encourages emotional range rather than flat consistency
-                stability: 0.35,
-                // Keep similarity boost high to retain the actor's intended sound
-                similarity_boost: 0.75,
-                // High style pushes the AI to exaggerate punctuation and sound highly enthusiastic/conversational
-                style: 0.75,
-                use_speaker_boost: true
-            }
+            voice_settings: voiceSettings
         },
         {
             headers: {

@@ -129,7 +129,9 @@ async function runAutoGrowthForUser(user, slot = 1) {
             text: script.cleanScript,
             voiceId,
             outputDir: OUTPUT_DIR,
-            jobId
+            jobId,
+            niche,
+            tone
         });
 
         // Step 3: Fetch stock footage
