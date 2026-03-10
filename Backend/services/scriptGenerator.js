@@ -39,6 +39,7 @@ Formatting Rules:
 - You MUST include at least ${minSegments} segments
 - DO NOT use any emojis anywhere in the script
 - Bold the most important, high-impact words using markdown (e.g. **bold**)
+- Use ElevenLabs v3 audio emotion tags where they naturally fit the tone (e.g. [laughs], [sighs], [gasps], [clears throat], [nervous laugh], [exhales]). Use sparingly — 2-4 per script max, only where they genuinely enhance delivery
 - ${customCTA ? `The callToAction field MUST be exactly: "${customCTA}"` : 'End with a strong call-to-action (the Offer)'}
 
 Return ONLY valid JSON in this exact format:

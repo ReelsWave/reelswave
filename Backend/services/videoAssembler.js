@@ -241,8 +241,8 @@ function buildAssCaptions(script, audioDuration, jobId, outputDir, timestamps) {
         script.callToAction
     ].join(' ');
 
-    // Strip any remaining markdown (cleanScript should already be clean, but be safe)
-    const cleanText = rawText.replace(/\*\*/g, '').replace(/_/g, '');
+    // Strip markdown and ElevenLabs audio cue tags (e.g. [laughs], [sighs]) — not spoken words, no timestamps
+    const cleanText = rawText.replace(/\*\*/g, '').replace(/_/g, '').replace(/\[[^\]]*\]/g, '');
 
     // Split text into words (retaining connected emojis)
     const assWords = cleanText.split(/\s+/).filter(w => w.length > 0);
