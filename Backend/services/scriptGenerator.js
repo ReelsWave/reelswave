@@ -17,14 +17,21 @@ export async function generateScript({ topic, niche, tone = 'energetic', duratio
   const targetWords = Math.round((duration / 60) * 160);
   const minSegments = Math.ceil(duration / 5);
 
+  // Extract any "Mention AT THE END:" instruction from the topic
+  const ctaMatch = topic.match(/mention\s+at\s+the\s+end\s*:\s*(.+)/i);
+  const customCTA = ctaMatch ? ctaMatch[1].trim() : null;
+  const cleanTopic = topic.replace(/mention\s+at\s+the\s+end\s*:.+/i, '').trim();
+
   const prompt = `You are a viral short-form video scriptwriter. Create a ${duration}-second script for a faceless video.
 
-TOPIC: ${topic}
+CONTENT INSTRUCTIONS (follow these above all else):
+TOPIC: ${cleanTopic}
 NICHE: ${niche}
 TONE: ${tone}
 VISUAL_STYLE_PROMPT: ${style}
+${customCTA ? `CALL TO ACTION (use this EXACT text verbatim as the callToAction field): "${customCTA}"` : ''}
 
-Rules:
+Formatting Rules:
 - Follow a 'hook, story, offer' structure
 - Start with a powerful HOOK (first 3 seconds) that stops the scroll
 - WORD COUNT IS CRITICAL: The total word count of (hook + all segment texts + callToAction) MUST be ${targetWords} words. This is non-negotiable — it determines video length.
@@ -32,7 +39,7 @@ Rules:
 - You MUST include at least ${minSegments} segments
 - DO NOT use any emojis anywhere in the script
 - Bold the most important, high-impact words using markdown (e.g. **bold**)
-- End with a strong call-to-action (the Offer)
+- ${customCTA ? `The callToAction field MUST be exactly: "${customCTA}"` : 'End with a strong call-to-action (the Offer)'}
 
 Return ONLY valid JSON in this exact format:
 {
