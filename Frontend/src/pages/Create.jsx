@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { VoicePicker } from '../components/VoicePicker';
 import './Create.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -41,23 +42,10 @@ const STYLES = [
     { id: 'ethereal_dream', name: 'Fantastic', icon: '✨', prompt: 'ethereal fantasy, glowing lights, magical, surreal, dreamy vibe, beautiful, glowing', bg: 'url(/styles/ethereal_dream.jpg)' }
 ];
 
-const AVATAR_COLORS = ['#00b2cb', '#a855f7', '#f59e0b', '#22c55e', '#ef4444', '#3b82f6', '#ec4899', '#14b8a6'];
-const getAvatarColor = (name) => AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
-const getVoiceDesc = (v) => {
-    const parts = [];
-    if (v.labels?.age) parts.push(v.labels.age);
-    if (v.labels?.gender) parts.push(v.labels.gender);
-    if (v.labels?.accent) parts.push(v.labels.accent);
-    if (v.labels?.description) parts.push(v.labels.description);
-    return parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' · ') || v.category || '';
-};
-
 function Create({ session }) {
     const navigate = useNavigate();
     const [step, setStep] = useState(1);
     const [voices, setVoices] = useState([]);
-    const audioRef = useRef(null);
-    const [playingVoiceId, setPlayingVoiceId] = useState(null);
 
     // Form state
     const [niche, setNiche] = useState('');
@@ -103,22 +91,6 @@ function Create({ session }) {
 
         return () => clearInterval(interval);
     }, [jobId, navigate]);
-
-    const playVoicePreview = (voice) => {
-        if (!voice.previewUrl) return;
-        if (playingVoiceId === voice.id) {
-            audioRef.current?.pause();
-            audioRef.current = null;
-            setPlayingVoiceId(null);
-            return;
-        }
-        audioRef.current?.pause();
-        const audio = new Audio(voice.previewUrl);
-        audio.onended = () => setPlayingVoiceId(null);
-        audio.play();
-        audioRef.current = audio;
-        setPlayingVoiceId(voice.id);
-    };
 
     const handleGenerate = async () => {
         setGenerating(true);
@@ -302,40 +274,14 @@ function Create({ session }) {
                                 </div>
                             </div>
 
-                            {voices.length > 0 && (
-                                <div className="form-group">
-                                    <label>Voice</label>
-                                    <div className="voice-picker">
-                                        {voices.map(v => (
-                                            <div
-                                                key={v.id}
-                                                className={`voice-card ${voiceId === v.id ? 'voice-selected' : ''}`}
-                                                onClick={() => setVoiceId(v.id)}
-                                            >
-                                                <div
-                                                    className="voice-avatar"
-                                                    style={{ background: getAvatarColor(v.name) }}
-                                                >
-                                                    {v.name[0].toUpperCase()}
-                                                </div>
-                                                <div className="voice-info">
-                                                    <div className="voice-name">{v.name}</div>
-                                                    <div className="voice-desc">{getVoiceDesc(v)}</div>
-                                                </div>
-                                                {v.previewUrl && (
-                                                    <button
-                                                        className={`voice-play-btn ${playingVoiceId === v.id ? 'playing' : ''}`}
-                                                        onClick={e => { e.stopPropagation(); playVoicePreview(v); }}
-                                                        title={playingVoiceId === v.id ? 'Stop' : 'Preview'}
-                                                    >
-                                                        {playingVoiceId === v.id ? '■' : '▶'}
-                                                    </button>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                            <div className="form-group">
+                                <label>Voice</label>
+                                <VoicePicker
+                                    voices={voices}
+                                    value={voiceId}
+                                    onChange={setVoiceId}
+                                />
+                            </div>
 
                             <div className="create-actions">
                                 <button className="btn btn-ghost" onClick={() => setStep(2)}>← Back</button>

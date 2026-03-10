@@ -1,0 +1,196 @@
+.vp-container {
+    position: relative;
+    width: 100%;
+}
+
+/* Trigger button */
+.vp-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    font-family: var(--font-main);
+    text-align: left;
+    color: var(--text-primary);
+}
+
+.vp-trigger:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+.vp-trigger.open {
+    border-color: var(--accent);
+    background: rgba(0, 178, 203, 0.06);
+}
+
+.vp-trigger-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #0a0a0f;
+    flex-shrink: 0;
+}
+
+.vp-trigger-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.vp-trigger-name {
+    font-size: 0.88rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.vp-trigger-desc {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.vp-trigger-placeholder {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    flex: 1;
+}
+
+.vp-chevron {
+    flex-shrink: 0;
+    color: var(--text-muted);
+    transition: transform 0.2s ease;
+}
+
+.vp-chevron.flipped {
+    transform: rotate(180deg);
+}
+
+/* Dropdown panel */
+.vp-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 200;
+    background: rgba(18, 18, 28, 0.97);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    padding: 6px;
+    max-height: 300px;
+    overflow-y: auto;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+    animation: vp-open 0.15s ease;
+}
+
+@keyframes vp-open {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.vp-dropdown::-webkit-scrollbar { width: 4px; }
+.vp-dropdown::-webkit-scrollbar-track { background: transparent; }
+.vp-dropdown::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+/* Option row */
+.vp-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.vp-option:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.vp-option.selected {
+    background: rgba(0, 178, 203, 0.1);
+}
+
+.vp-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #0a0a0f;
+    flex-shrink: 0;
+}
+
+.vp-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.vp-name {
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.vp-desc {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Play button */
+.vp-play-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.18s ease;
+    font-size: 0.6rem;
+}
+
+.vp-play-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.vp-play-btn.playing {
+    background: rgba(0, 178, 203, 0.12);
+    border-color: var(--accent);
+    color: var(--accent);
+}

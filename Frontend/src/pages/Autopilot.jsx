@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { VoicePicker } from '../components/VoicePicker';
 import {
     Zap, Clock, Activity, Radio, CheckCircle2,
     ArrowRight, Crown, Sparkles, Youtube, Instagram,
@@ -497,18 +498,11 @@ function Autopilot({ session }) {
                                         <Mic size={13} />
                                         Voice
                                     </label>
-                                    <select
-                                        className="ap-voice-select"
+                                    <VoicePicker
+                                        voices={voices}
                                         value={isDedicated ? activeValues.voiceId : voiceId}
-                                        onChange={e => isDedicated ? setActiveValue('voiceId', e.target.value) : setVoiceId(e.target.value)}
-                                    >
-                                        {voices.length === 0
-                                            ? <option>Loading voices...</option>
-                                            : voices.map(v => (
-                                                <option key={v.id} value={v.id}>{v.name}</option>
-                                            ))
-                                        }
-                                    </select>
+                                        onChange={v => isDedicated ? setActiveValue('voiceId', v) : setVoiceId(v)}
+                                    />
                                 </div>
 
                                 {/* Voice Tone */}
