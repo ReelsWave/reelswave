@@ -58,7 +58,7 @@ export async function generateVoiceover({ text, voiceId, outputDir, jobId, niche
         `${ELEVENLABS_API_URL}/text-to-speech/${selectedVoiceId}/with-timestamps`,
         {
             text,
-            model_id: 'eleven_multilingual_v2',
+            model_id: 'eleven_v3',
             voice_settings: voiceSettings
         },
         {
