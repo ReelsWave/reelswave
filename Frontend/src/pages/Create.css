@@ -351,6 +351,115 @@
     color: var(--text-primary);
 }
 
+/* Voice Picker */
+.voice-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.voice-picker::-webkit-scrollbar {
+    width: 4px;
+}
+
+.voice-picker::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.voice-picker::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.voice-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.02);
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+
+.voice-card:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.voice-card.voice-selected {
+    border-color: var(--accent);
+    background: var(--accent-light);
+}
+
+.voice-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0a0a0f;
+    flex-shrink: 0;
+}
+
+.voice-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.voice-name {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.voice-desc {
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.voice-play-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.18s ease;
+    font-size: 0.65rem;
+}
+
+.voice-play-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.voice-play-btn.playing {
+    background: var(--accent-light);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .niches-select-grid {
