@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { X, Download, Play } from 'lucide-react';
 import './Dashboard.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -9,6 +10,13 @@ function Dashboard({ session }) {
     const [videos, setVideos] = useState([]);
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [previewVideo, setPreviewVideo] = useState(null);
+
+    // Lock body scroll when modal is open
+    useEffect(() => {
+        document.body.style.overflow = previewVideo ? 'hidden' : '';
+        return () => { document.body.style.overflow = ''; };
+    }, [previewVideo]);
 
     useEffect(() => {
         fetchData();
@@ -16,14 +24,12 @@ function Dashboard({ session }) {
 
     const fetchData = async () => {
         try {
-            // Fetch videos from backend
             const videosRes = await fetch(`${API_URL}/api/videos`, {
                 headers: { Authorization: `Bearer ${session.access_token}` }
             });
             const videosData = await videosRes.json();
             setVideos(videosData.videos || []);
 
-            // Fetch profile from Supabase
             const { data: profileData } = await supabase
                 .from('profiles')
                 .select('*')
@@ -40,7 +46,6 @@ function Dashboard({ session }) {
 
     const handleDelete = async (videoId) => {
         if (!confirm('Delete this video?')) return;
-
         try {
             await fetch(`${API_URL}/api/videos/${videoId}`, {
                 method: 'DELETE',
@@ -114,11 +119,20 @@ function Dashboard({ session }) {
                         <div className="grid grid-3 videos-grid">
                             {videos.map(video => (
                                 <div key={video.id} className="card video-card">
-                                    <div className="video-thumbnail">
+                                    <div
+                                        className="video-thumbnail"
+                                        onClick={() => video.video_url && setPreviewVideo(video)}
+                                        style={{ cursor: video.video_url ? 'pointer' : 'default' }}
+                                    >
                                         {video.video_url ? (
                                             <video src={video.video_url} muted preload="metadata" />
                                         ) : (
                                             <div className="video-placeholder">🎬</div>
+                                        )}
+                                        {video.video_url && (
+                                            <div className="video-play-overlay">
+                                                <Play size={28} fill="white" strokeWidth={0} />
+                                            </div>
                                         )}
                                         <div className="badge badge-success video-status">
                                             {video.status}
@@ -131,15 +145,13 @@ function Dashboard({ session }) {
                                         </p>
                                         <div className="video-actions">
                                             {video.video_url && (
-                                                <a
-                                                    href={video.video_url}
-                                                    download
-                                                    target="_blank"
-                                                    rel="noreferrer"
+                                                <button
                                                     className="btn btn-primary btn-sm"
+                                                    onClick={() => setPreviewVideo(video)}
                                                 >
-                                                    Download
-                                                </a>
+                                                    <Play size={13} />
+                                                    Preview
+                                                </button>
                                             )}
                                             <button
                                                 onClick={() => handleDelete(video.id)}
@@ -156,6 +168,39 @@ function Dashboard({ session }) {
                     )}
                 </div>
             </div>
+
+            {/* Video Preview Modal */}
+            {previewVideo && (
+                <div className="vpm-backdrop" onClick={() => setPreviewVideo(null)}>
+                    <div className="vpm-modal" onClick={e => e.stopPropagation()}>
+                        <button className="vpm-close" onClick={() => setPreviewVideo(null)}>
+                            <X size={18} />
+                        </button>
+                        <div className="vpm-video-wrap">
+                            <video
+                                src={previewVideo.video_url}
+                                controls
+                                autoPlay
+                                playsInline
+                                className="vpm-video"
+                            />
+                        </div>
+                        <div className="vpm-footer">
+                            <div className="vpm-title">{previewVideo.title}</div>
+                            <a
+                                href={previewVideo.video_url}
+                                download
+                                target="_blank"
+                                rel="noreferrer"
+                                className="btn btn-primary btn-sm"
+                            >
+                                <Download size={14} />
+                                Download
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
