@@ -18,6 +18,11 @@ const NICHES = [
     { id: 'tech', icon: '💻', name: 'Technology', desc: 'Tech news & gadgets' },
 ];
 
+const DURATIONS = [
+    { value: 45, label: '30–60s', sub: 'Short form' },
+    { value: 75, label: '60–90s', sub: 'Long form', monetized: true },
+];
+
 const TONES = [
     { id: 'energetic', name: 'Energetic', icon: '⚡' },
     { id: 'dramatic', name: 'Dramatic', icon: '🎭' },
@@ -52,7 +57,7 @@ function Create({ session }) {
     const [videoStyle, setVideoStyle] = useState('');
     const [topic, setTopic] = useState('');
     const [tone, setTone] = useState('energetic');
-    const [duration, setDuration] = useState(60);
+    const [duration, setDuration] = useState(75);
     const [voiceId, setVoiceId] = useState('');
     // Generation state
     const [generating, setGenerating] = useState(false);
@@ -261,14 +266,18 @@ function Create({ session }) {
 
                             <div className="form-group">
                                 <label>Duration</label>
-                                <div className="duration-btns">
-                                    {[30, 60, 90].map(d => (
+                                <div className="cr-duration-row">
+                                    {DURATIONS.map(d => (
                                         <button
-                                            key={d}
-                                            className={`btn ${duration === d ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                                            onClick={() => setDuration(d)}
+                                            key={d.value}
+                                            className={`cr-duration-btn ${duration === d.value ? 'selected' : ''}`}
+                                            onClick={() => setDuration(d.value)}
                                         >
-                                            {d}s
+                                            <span className="cr-dur-label">{d.label}</span>
+                                            <span className="cr-dur-sub">
+                                                {d.sub}
+                                                {d.monetized && <span className="cr-dur-money">💰 Monetizable</span>}
+                                            </span>
                                         </button>
                                     ))}
                                 </div>
