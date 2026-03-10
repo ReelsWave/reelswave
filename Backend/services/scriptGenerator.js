@@ -28,7 +28,7 @@ Rules:
 - Follow a 'hook, story, offer' structure
 - Start with a powerful HOOK (first 3 seconds) that stops the scroll
 - WORD COUNT IS CRITICAL: The total word count of (hook + all segment texts + callToAction) MUST be ${targetWords} words. This is non-negotiable — it determines video length.
-- Each segment text should contain 2-4 short punchy sentences totalling 15-25 words. Sentences can be concise and fragmented for kinetic animation, but each segment MUST have enough content.
+- Each segment text should contain 2-4 sentences totalling 15-25 words. Each sentence should be SHORT (3-5 words max) for caption display — but each segment MUST have multiple sentences to hit the word count.
 - You MUST include at least ${minSegments} segments
 - DO NOT use any emojis anywhere in the script
 - Bold the most important, high-impact words using markdown (e.g. **bold**)
