@@ -6,7 +6,7 @@ import {
     Zap, Clock, Activity, Radio, CheckCircle2,
     ArrowRight, Crown, Sparkles, Youtube, Instagram,
     Music2, Power, TrendingUp, SlidersHorizontal, Flame,
-    Wifi, Play, Mic, Timer
+    Wifi, Play, Mic, Timer, Unplug, X
 } from 'lucide-react';
 import './Autopilot.css';
 
@@ -99,6 +99,7 @@ function Autopilot({ session }) {
     const [connectedProfiles, setConnectedProfiles] = useState([]);
     const [connectingPlatform, setConnectingPlatform] = useState(null);
     const [disconnectingPlatform, setDisconnectingPlatform] = useState(null);
+    const [disconnectConfirm, setDisconnectConfirm] = useState(null); // { id, name, Icon, color }
 
     // Engine config
     const [enabled, setEnabled] = useState(false);
@@ -221,11 +222,17 @@ function Autopilot({ session }) {
         }
     };
 
-    const handleDisconnect = async (platformId) => {
+    const handleDisconnect = (platformId) => {
+        const platform = PLATFORMS.find(p => p.id === platformId);
+        setDisconnectConfirm(platform);
+    };
+
+    const confirmDisconnect = async () => {
+        const platformId = disconnectConfirm.id;
         const account = connectedProfiles.find(p => p.platform === platformId);
         if (!account) return;
-        if (!window.confirm(`Disconnect ${platformId}? Auto-growth will stop posting to this channel.`)) return;
         setDisconnectingPlatform(platformId);
+        setDisconnectConfirm(null);
         try {
             const { data: { session } } = await supabase.auth.getSession();
             const res = await fetch(`${API_URL}/api/videos/disconnect-account`, {
@@ -731,6 +738,31 @@ function Autopilot({ session }) {
                 )}
             </div>
         </div>
+
+        {/* ── Disconnect Confirm Modal ── */}
+        {disconnectConfirm && (
+            <div className="dc-backdrop" onClick={() => setDisconnectConfirm(null)}>
+                <div className="dc-modal" onClick={e => e.stopPropagation()}>
+                    <button className="dc-close" onClick={() => setDisconnectConfirm(null)}>
+                        <X size={16} />
+                    </button>
+                    <div className="dc-icon-wrap" style={{ '--dc': disconnectConfirm.color }}>
+                        <disconnectConfirm.Icon size={26} strokeWidth={1.5} />
+                    </div>
+                    <h3 className="dc-title">Disconnect {disconnectConfirm.name}?</h3>
+                    <p className="dc-body">
+                        Auto-growth will stop posting to your {disconnectConfirm.name} channel. You can reconnect at any time.
+                    </p>
+                    <div className="dc-actions">
+                        <button className="dc-cancel" onClick={() => setDisconnectConfirm(null)}>Cancel</button>
+                        <button className="dc-confirm" onClick={confirmDisconnect}>
+                            <Unplug size={14} />
+                            Disconnect
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
     );
 }
 
