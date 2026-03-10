@@ -40,7 +40,7 @@ const NICHE_VOICE_SETTINGS = {
     fitness:      { stability: 0.22, similarity_boost: 0.78, style: 0.90, use_speaker_boost: true },  // aggressive, high-energy
     funfacts:     { stability: 0.42, similarity_boost: 0.76, style: 0.68, use_speaker_boost: true },  // upbeat, conversational
     lifehacks:    { stability: 0.48, similarity_boost: 0.78, style: 0.60, use_speaker_boost: true },  // clear, friendly
-    cooking:      { stability: 0.50, similarity_boost: 0.80, style: 0.55, use_speaker_boost: true },  // warm, inviting
+    funny:        { stability: 0.20, similarity_boost: 0.75, style: 0.95, use_speaker_boost: true },  // playful, expressive, comedic
     finance:      { stability: 0.58, similarity_boost: 0.82, style: 0.48, use_speaker_boost: true },  // authoritative, measured
     science:      { stability: 0.52, similarity_boost: 0.80, style: 0.52, use_speaker_boost: true },  // curious, clear
     default:      { stability: 0.35, similarity_boost: 0.75, style: 0.75, use_speaker_boost: true },

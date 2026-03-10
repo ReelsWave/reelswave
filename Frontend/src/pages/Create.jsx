@@ -12,7 +12,7 @@ const NICHES = [
     { id: 'lifehacks', icon: '💡', name: 'Life Hacks', desc: 'Useful tips & tricks' },
     { id: 'finance', icon: '💰', name: 'Finance', desc: 'Money tips & investing' },
     { id: 'fitness', icon: '🏋️', name: 'Fitness', desc: 'Workout & health tips' },
-    { id: 'cooking', icon: '🍳', name: 'Cooking', desc: 'Recipes & food tips' },
+    { id: 'funny', icon: '😂', name: 'Funny', desc: 'Humor & comedy skits' },
     { id: 'science', icon: '🔬', name: 'Science', desc: 'Amazing discoveries' },
     { id: 'history', icon: '📜', name: 'History', desc: 'Historical events & stories' },
     { id: 'tech', icon: '💻', name: 'Technology', desc: 'Tech news & gadgets' },

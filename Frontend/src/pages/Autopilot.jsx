@@ -19,7 +19,7 @@ const NICHES = [
     { id: 'lifehacks', emoji: '💡', name: 'Life Hacks', color: '#eab308' },
     { id: 'finance', emoji: '💰', name: 'Finance', color: '#22c55e' },
     { id: 'fitness', emoji: '🏋️', name: 'Fitness', color: '#ef4444' },
-    { id: 'cooking', emoji: '🍳', name: 'Cooking', color: '#f59e0b' },
+    { id: 'funny', emoji: '😂', name: 'Funny', color: '#f59e0b' },
     { id: 'science', emoji: '⚛️', name: 'Science', color: '#818cf8' },
     { id: 'history', emoji: '📜', name: 'History', color: '#a78bfa' },
     { id: 'tech', emoji: '💻', name: 'Tech', color: '#3b82f6' },

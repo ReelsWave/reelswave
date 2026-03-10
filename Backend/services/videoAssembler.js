@@ -233,14 +233,16 @@ function getMediaDuration(filePath) {
  * Build Advanced SubStation Alpha (.ass) file perfectly synced via ElevenLabs word timestamps
  */
 function buildAssCaptions(script, audioDuration, jobId, outputDir, timestamps) {
-    const allText = [
+    // Use cleanScript (what ElevenLabs actually received) so word count matches timestamps exactly.
+    // Falling back to rebuilding from segments if cleanScript is missing.
+    const rawText = script.cleanScript || [
         script.hook,
         ...script.segments.map(s => s.text),
         script.callToAction
     ].join(' ');
 
-    // Strip markdown bolding as all text will be bolded natively by ASS Style
-    const cleanText = allText.replace(/\*\*/g, '').replace(/_/g, '');
+    // Strip any remaining markdown (cleanScript should already be clean, but be safe)
+    const cleanText = rawText.replace(/\*\*/g, '').replace(/_/g, '');
 
     // Split text into words (retaining connected emojis)
     const assWords = cleanText.split(/\s+/).filter(w => w.length > 0);
