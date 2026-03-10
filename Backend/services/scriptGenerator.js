@@ -64,22 +64,43 @@ CRITICAL RULE FOR IMAGE PROMPTS:
     config: {
       responseMimeType: 'application/json',
       temperature: 0.8,
-      maxOutputTokens: 8192
+      maxOutputTokens: 16384
     }
   });
 
   let scriptText = response.text;
-  console.log('--- RAW GEMINI OUTPUT ---');
-  console.log(scriptText);
-  console.log('-------------------------');
 
-  // Since we use responseMimeType: 'application/json', it should be pure json
-  // But just in case, strip any markdown backticks
+  // Strip markdown backticks if present
   if (scriptText.startsWith('```')) {
     scriptText = scriptText.replace(/^```(json)?\n/, '').replace(/\n```$/, '');
   }
 
-  const script = JSON.parse(scriptText);
+  // Attempt to repair truncated JSON (Gemini sometimes cuts off mid-string)
+  function repairTruncatedJSON(text) {
+    // Find the last complete segment — ends with "duration": <number> then }
+    const lastDuration = text.lastIndexOf('"duration"');
+    if (lastDuration === -1) return null;
+    const closeAfterDuration = text.indexOf('}', lastDuration);
+    if (closeAfterDuration === -1) return null;
+    const truncated = text.substring(0, closeAfterDuration + 1);
+    // Close segments array and add minimal required fields
+    return truncated + '],\n  "callToAction": "Follow for more.",\n  "hashtags": ["viral", "trending"]\n}';
+  }
+
+  let script;
+  try {
+    script = JSON.parse(scriptText);
+  } catch (parseErr) {
+    console.warn('[scriptGenerator] JSON parse failed, attempting repair:', parseErr.message);
+    const repaired = repairTruncatedJSON(scriptText);
+    if (!repaired) throw new Error(`Script JSON unparseable: ${parseErr.message}`);
+    try {
+      script = JSON.parse(repaired);
+      console.log('[scriptGenerator] JSON repaired successfully, segments recovered:', script.segments?.length);
+    } catch (repairErr) {
+      throw new Error(`Script JSON repair failed: ${repairErr.message}`);
+    }
+  }
 
   // Combine all text for voiceover
   const fullScript = [

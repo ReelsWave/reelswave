@@ -231,6 +231,8 @@ function Autopilot({ session }) {
         const platformId = disconnectConfirm.id;
         const account = connectedProfiles.find(p => p.platform === platformId);
         if (!account) return;
+        const accountId = account._id || account.accountId || account.id;
+        if (!accountId) { alert('Could not resolve account ID. Please try again.'); return; }
         setDisconnectingPlatform(platformId);
         setDisconnectConfirm(null);
         try {
@@ -241,7 +243,7 @@ function Autopilot({ session }) {
                     Authorization: `Bearer ${session.access_token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ accountId: account._id })
+                body: JSON.stringify({ accountId })
             });
             if (!res.ok) throw new Error('Failed to disconnect');
             setConnectedProfiles(prev => prev.filter(p => p.platform !== platformId));

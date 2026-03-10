@@ -313,6 +313,7 @@ router.get('/connected-profiles', authMiddleware, async (req, res) => {
         }
 
         const profiles = await getConnectedProfiles(profile.late_dev_profile_id);
+        console.log('[connected-profiles] raw accounts:', JSON.stringify(profiles, null, 2));
         res.json({ profiles });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -326,10 +327,12 @@ router.get('/connected-profiles', authMiddleware, async (req, res) => {
 router.delete('/disconnect-account', authMiddleware, async (req, res) => {
     try {
         const { accountId } = req.body;
+        console.log('[disconnect-account] received accountId:', accountId);
         if (!accountId) return res.status(400).json({ error: 'accountId required' });
         await disconnectAccount(accountId);
         res.json({ success: true });
     } catch (err) {
+        console.error('[disconnect-account] error:', err.message);
         res.status(500).json({ error: err.message });
     }
 });
