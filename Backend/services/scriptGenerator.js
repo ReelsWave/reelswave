@@ -15,7 +15,11 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
  */
 export async function generateScript({ topic, niche, tone = 'energetic', duration = 60, style = '' }) {
   const targetWords = Math.round((duration / 60) * 160);
-  const minSegments = Math.ceil(duration / 5);
+  const minSegments = Math.ceil(duration / 6); // ~6s per segment
+  // Words per segment: subtract ~15 each for hook and CTA, split the rest evenly
+  const wordsPerSegment = Math.round((targetWords - 30) / minSegments);
+  const minWordsPerSeg = Math.max(8, wordsPerSegment - 3);
+  const maxWordsPerSeg = wordsPerSegment + 4;
 
   // Extract any "Mention AT THE END:" instruction from the topic
   const ctaMatch = topic.match(/mention\s+at\s+the\s+end\s*:\s*(.+)/i);
@@ -34,9 +38,9 @@ ${customCTA ? `CALL TO ACTION (use this EXACT text verbatim as the callToAction 
 Formatting Rules:
 - Follow a 'hook, story, offer' structure
 - Start with a powerful HOOK (first 3 seconds) that stops the scroll
-- WORD COUNT IS CRITICAL: The total word count of (hook + all segment texts + callToAction) MUST be ${targetWords} words. This is non-negotiable — it determines video length.
-- Each segment text should contain 2-4 sentences totalling 15-25 words. Each sentence should be SHORT (3-5 words max) for caption display — but each segment MUST have multiple sentences to hit the word count.
-- You MUST include at least ${minSegments} segments
+- WORD COUNT IS CRITICAL: The total word count of (hook + all segment texts + callToAction) MUST be exactly ${targetWords} words. This determines video length — going over makes the video too long.
+- Each segment text must be ${minWordsPerSeg}–${maxWordsPerSeg} words. Use short sentences (3-5 words each) for caption display.
+- You MUST include exactly ${minSegments} segments — no more, no fewer
 - DO NOT use any emojis anywhere in the script
 - Bold the most important, high-impact words using markdown (e.g. **bold**)
 - Use ElevenLabs v3 audio emotion tags where they naturally fit the tone (e.g. [laughs], [sighs], [gasps], [clears throat], [nervous laugh], [exhales]). Use sparingly — 2-4 per script max, only where they genuinely enhance delivery
@@ -58,7 +62,7 @@ Return ONLY valid JSON in this exact format:
   "hashtags": ["relevant", "hashtags", "for", "posting"]
 }
 
-Make the segments flow naturally. Each segment should be 4-6 seconds of narration (15-25 words). Include at least ${minSegments} segments — do NOT write fewer.
+Make the segments flow naturally. Each segment must be ${minWordsPerSeg}–${maxWordsPerSeg} words. Write exactly ${minSegments} segments. Total word count must be ${targetWords} words.
 The imagePrompt MUST describe highly detailed, visually compelling scenes for an AI Image Generator. 
 CRITICAL RULE FOR IMAGE PROMPTS: 
 1. CONSISTENCY IS KING. You must prepend the exact same \`characterDescription\` to every single \`imagePrompt\` if the character appears in that scene. Otherwise, the AI will draw a different person every time.
