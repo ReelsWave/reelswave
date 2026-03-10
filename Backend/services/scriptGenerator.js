@@ -1,8 +1,8 @@
-import { GoogleGenAI } from '@google/genai';
+import OpenAI from 'openai';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 /**
  * Generate a viral video script using GPT-5.4
@@ -66,48 +66,21 @@ CRITICAL RULE FOR IMAGE PROMPTS:
 3. If the story involves a character with specific physical traits or disabilities (e.g., "one-legged", "missing an arm", "scars"), you MUST be extremely explicit and aggressive in the imagePrompt to force the AI generator to comply. Do not just say "a one legged boy", say "A boy with ONLY ONE LEG AND ONE EMPTY PANT LEG, missing his left leg completely, hopping on crutches, single leg visible" to prevent the image AI from defaulting to two legs.
 4. The image MUST NOT contain any large title text, subtitles, memes, or overlaid text baked into the image. It should look like a clean cinematic photograph without huge text blocks, though natural environmental text (like street signs) is fine.`;
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: prompt,
-    config: {
-      responseMimeType: 'application/json',
-      temperature: 0.8,
-      maxOutputTokens: 16384
-    }
+  const response = await openai.chat.completions.create({
+    model: 'gpt-5.4',
+    messages: [{ role: 'user', content: prompt }],
+    response_format: { type: 'json_object' },
+    temperature: 0.8,
+    max_tokens: 16384
   });
 
-  let scriptText = response.text;
-
-  // Strip markdown backticks if present
-  if (scriptText.startsWith('```')) {
-    scriptText = scriptText.replace(/^```(json)?\n/, '').replace(/\n```$/, '');
-  }
-
-  // Attempt to repair truncated JSON (Gemini sometimes cuts off mid-string)
-  function repairTruncatedJSON(text) {
-    // Find the last complete segment — ends with "duration": <number> then }
-    const lastDuration = text.lastIndexOf('"duration"');
-    if (lastDuration === -1) return null;
-    const closeAfterDuration = text.indexOf('}', lastDuration);
-    if (closeAfterDuration === -1) return null;
-    const truncated = text.substring(0, closeAfterDuration + 1);
-    // Close segments array and add minimal required fields
-    return truncated + '],\n  "callToAction": "Follow for more.",\n  "hashtags": ["viral", "trending"]\n}';
-  }
+  let scriptText = response.choices[0].message.content;
 
   let script;
   try {
     script = JSON.parse(scriptText);
   } catch (parseErr) {
-    console.warn('[scriptGenerator] JSON parse failed, attempting repair:', parseErr.message);
-    const repaired = repairTruncatedJSON(scriptText);
-    if (!repaired) throw new Error(`Script JSON unparseable: ${parseErr.message}`);
-    try {
-      script = JSON.parse(repaired);
-      console.log('[scriptGenerator] JSON repaired successfully, segments recovered:', script.segments?.length);
-    } catch (repairErr) {
-      throw new Error(`Script JSON repair failed: ${repairErr.message}`);
-    }
+    throw new Error(`Script JSON unparseable: ${parseErr.message}`);
   }
 
   // Combine all text for voiceover
