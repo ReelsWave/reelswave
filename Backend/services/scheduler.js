@@ -86,6 +86,12 @@ export function initScheduler() {
  * @param {Object} user - User profile data
  */
 async function runAutoGrowthForUser(user, slot = 1) {
+    // Guard: skip if user has no credits
+    if (!user.credits || user.credits <= 0) {
+        console.warn(`[Auto Growth ${user.id}] Skipping slot ${slot} — no credits remaining`);
+        return;
+    }
+
     const jobId = uuidv4();
     const userId = user.id;
     const settings = (slot === 2 ? user.auto_growth_settings_2 : slot === 3 ? user.auto_growth_settings_3 : null) || user.auto_growth_settings || {};

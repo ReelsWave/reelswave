@@ -311,7 +311,7 @@ function Create({ session }) {
                 )}
 
                 {/* Step 4: Generation Progress */}
-                {step === 4 && (
+                {step === 4 && jobStatus?.status !== 'failed' && (
                     <div className="create-step animate-fade-in text-center" style={{ maxWidth: 500, margin: '0 auto' }}>
                         <div style={{ fontSize: '4rem', marginBottom: 24, animation: 'float 2s ease infinite' }}>
                             {jobStatus?.status === 'completed' ? '🎉' : '🌊'}
@@ -335,17 +335,33 @@ function Create({ session }) {
                                 Redirecting to your dashboard...
                             </p>
                         )}
+                    </div>
+                )}
 
-                        {jobStatus?.status === 'failed' && (
-                            <div style={{ marginTop: 20 }}>
-                                <p style={{ color: 'var(--danger)', marginBottom: 16 }}>
-                                    {jobStatus.error || 'Something went wrong'}
-                                </p>
-                                <button className="btn btn-primary" onClick={() => { setStep(3); setJobId(null); setJobStatus(null); setGenerating(false); }}>
+                {/* Step 4: Failed State */}
+                {step === 4 && jobStatus?.status === 'failed' && (
+                    <div className="create-step animate-fade-in" style={{ maxWidth: 500, margin: '0 auto' }}>
+                        <div className="gen-error-card">
+                            <div className="gen-error-icon">✕</div>
+                            <h3 className="gen-error-title">Video Generation Failed</h3>
+                            <p className="gen-error-msg">
+                                {jobStatus.error || 'Something went wrong during generation. Your credits were not deducted.'}
+                            </p>
+                            <div className="gen-error-actions">
+                                <button
+                                    className="gen-error-retry"
+                                    onClick={() => { setStep(3); setJobId(null); setJobStatus(null); setGenerating(false); }}
+                                >
                                     Try Again
                                 </button>
+                                <button
+                                    className="gen-error-dash"
+                                    onClick={() => navigate('/dashboard')}
+                                >
+                                    View Dashboard
+                                </button>
                             </div>
-                        )}
+                        </div>
                     </div>
                 )}
             </div>

@@ -1,13 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { User, CreditCard, Zap, ArrowRight, Copy, Check } from 'lucide-react';
+import { User, CreditCard, Zap, ArrowRight, Copy, Check, ExternalLink, RefreshCw } from 'lucide-react';
 import './Settings.css';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 function Settings({ session }) {
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState(false);
+    const [subscription, setSubscription] = useState(null);
+    const [subLoading, setSubLoading] = useState(false);
+    const [portalLoading, setPortalLoading] = useState(false);
 
     useEffect(() => {
         fetchProfile();
@@ -21,10 +26,51 @@ function Settings({ session }) {
                 .eq('id', session.user.id)
                 .single();
             setProfile(data);
+
+            // Fetch subscription details if on a paid plan
+            if (data?.plan && data.plan !== 'free') {
+                fetchSubscription();
+            }
         } catch (err) {
             console.error(err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchSubscription = async () => {
+        setSubLoading(true);
+        try {
+            const res = await fetch(`${API_URL}/api/payments/subscription`, {
+                headers: { Authorization: `Bearer ${session.access_token}` }
+            });
+            const data = await res.json();
+            if (res.ok) setSubscription(data);
+        } catch (err) {
+            console.error('Subscription fetch error:', err);
+        } finally {
+            setSubLoading(false);
+        }
+    };
+
+    const openBillingPortal = async () => {
+        if (subscription?.customer_portal_url) {
+            window.open(subscription.customer_portal_url, '_blank');
+            return;
+        }
+        setPortalLoading(true);
+        try {
+            const res = await fetch(`${API_URL}/api/payments/subscription`, {
+                headers: { Authorization: `Bearer ${session.access_token}` }
+            });
+            const data = await res.json();
+            if (data.customer_portal_url) {
+                window.open(data.customer_portal_url, '_blank');
+            }
+        } catch (err) {
+            console.error('Portal error:', err);
+        } finally {
+            setPortalLoading(false);
         }
     };
 
@@ -36,9 +82,22 @@ function Settings({ session }) {
 
     const PLAN_META = {
         free:      { label: 'Free Trial',  color: '#9898a8', videos: '3 videos total',    upgrade: true },
-        basic:     { label: 'Basic',        color: '#eab308', videos: '3 videos / week',   upgrade: true },
-        pro:       { label: 'Pro',           color: '#00b2cb', videos: '1 video / day',     upgrade: false },
-        dedicated: { label: 'Dedicated',    color: '#a855f7', videos: '3 videos / day',    upgrade: false },
+        basic:     { label: 'Starter',     color: '#eab308', videos: '12 videos / month', upgrade: true },
+        pro:       { label: 'Pro',          color: '#00b2cb', videos: '30 videos / month', upgrade: false },
+        dedicated: { label: 'Dedicated',   color: '#a855f7', videos: '90 videos / month', upgrade: false },
+    };
+
+    const SUB_STATUS = {
+        active:    { label: 'Active',    color: '#22c55e' },
+        cancelled: { label: 'Cancelled', color: '#f59e0b' },
+        past_due:  { label: 'Past Due',  color: '#ef4444' },
+        paused:    { label: 'Paused',    color: '#94a3b8' },
+        expired:   { label: 'Expired',   color: '#6b7280' },
+    };
+
+    const formatDate = (iso) => {
+        if (!iso) return null;
+        return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     };
 
     const plan = profile?.plan || 'free';
@@ -96,6 +155,11 @@ function Settings({ session }) {
                             <div className="st-plan-badge" style={{ '--pc': meta.color }}>
                                 {meta.label}
                             </div>
+                            {subscription?.billing_cycle && (
+                                <span className="st-billing-cycle">
+                                    {subscription.billing_cycle === 'yearly' ? 'Yearly' : 'Monthly'}
+                                </span>
+                            )}
                             <span className="st-plan-videos">{meta.videos}</span>
                         </div>
                         <div className="st-credits-block">
@@ -103,6 +167,41 @@ function Settings({ session }) {
                             <span className="st-credits-label">credits left</span>
                         </div>
                     </div>
+
+                    {/* Subscription status + renewal date */}
+                    {subscription && subscription.status !== 'none' && (
+                        <div className="st-billing-row">
+                            {(() => {
+                                const s = SUB_STATUS[subscription.status] || { label: subscription.status, color: '#94a3b8' };
+                                const renewDate = formatDate(subscription.renews_at);
+                                const endDate   = formatDate(subscription.ends_at);
+                                return (
+                                    <>
+                                        <span className="st-sub-status" style={{ '--sc': s.color }}>{s.label}</span>
+                                        {subscription.status === 'active' && renewDate && (
+                                            <span className="st-renewal">Renews {renewDate}</span>
+                                        )}
+                                        {subscription.status === 'cancelled' && endDate && (
+                                            <span className="st-renewal st-renewal--warn">Access until {endDate}</span>
+                                        )}
+                                    </>
+                                );
+                            })()}
+                        </div>
+                    )}
+                    {subLoading && <div className="st-sub-loading">Loading billing info…</div>}
+
+                    {/* Manage billing button */}
+                    {plan !== 'free' && (
+                        <button
+                            className="st-manage-btn"
+                            onClick={openBillingPortal}
+                            disabled={portalLoading}
+                        >
+                            <ExternalLink size={14} />
+                            {portalLoading ? 'Opening…' : 'Manage Billing'}
+                        </button>
+                    )}
 
                     {meta.upgrade && (
                         <a href="/#pricing" className="st-upgrade-btn">

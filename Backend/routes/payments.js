@@ -173,6 +173,28 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
             break;
         }
 
+        case 'subscription_updated': {
+            const customerId = String(payload.data.attributes.customer_id);
+            const variantId  = String(payload.data.attributes.variant_id);
+
+            // Map variant ID back to a plan
+            let newPlanId = null;
+            for (const [id, plan] of Object.entries(PLANS)) {
+                if (String(plan.monthlyVariantId) === variantId || String(plan.yearlyVariantId) === variantId) {
+                    newPlanId = id;
+                    break;
+                }
+            }
+
+            if (newPlanId) {
+                await supabase
+                    .from('profiles')
+                    .update({ plan: newPlanId, credits: PLANS[newPlanId].credits })
+                    .eq('ls_customer_id', customerId);
+            }
+            break;
+        }
+
         case 'subscription_cancelled':
         case 'subscription_expired': {
             const customerId = String(payload.data.attributes.customer_id);
@@ -186,6 +208,54 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     }
 
     res.json({ received: true });
+});
+
+/**
+ * GET /api/payments/subscription
+ * Return current subscription details + billing portal URL
+ */
+router.get('/subscription', authMiddleware, async (req, res) => {
+    try {
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('plan, ls_subscription_id')
+            .eq('id', req.user.id)
+            .single();
+
+        if (!profile?.ls_subscription_id) {
+            return res.json({ status: 'none' });
+        }
+
+        const lsRes = await fetch(`${LEMONSQUEEZY_API}/subscriptions/${profile.ls_subscription_id}`, { headers });
+
+        if (!lsRes.ok) {
+            return res.json({ status: 'none' });
+        }
+
+        const { data } = await lsRes.json();
+        const attrs = data.attributes;
+
+        // Detect billing cycle
+        const variantId = String(attrs.variant_id);
+        let billingCycle = 'monthly';
+        for (const plan of Object.values(PLANS)) {
+            if (String(plan.yearlyVariantId) === variantId) {
+                billingCycle = 'yearly';
+                break;
+            }
+        }
+
+        res.json({
+            status: attrs.status,
+            renews_at: attrs.renews_at,
+            ends_at: attrs.ends_at,
+            billing_cycle: billingCycle,
+            customer_portal_url: attrs.urls?.customer_portal || null
+        });
+    } catch (err) {
+        console.error('Subscription fetch error:', err.message);
+        res.status(500).json({ error: 'Failed to fetch subscription details' });
+    }
 });
 
 export default router;

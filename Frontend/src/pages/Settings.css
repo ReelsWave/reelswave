@@ -190,6 +190,84 @@
     box-shadow: 0 0 32px rgba(0, 178, 203, 0.45);
 }
 
+/* Billing cycle pill */
+.st-billing-cycle {
+    padding: 3px 9px;
+    border-radius: 100px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+/* Billing status row */
+.st-billing-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+}
+
+.st-sub-status {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--sc);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.st-renewal {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+
+.st-renewal--warn {
+    color: #f59e0b;
+}
+
+.st-sub-loading {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+}
+
+/* Manage billing button */
+.st-manage-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 11px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 10px;
+}
+
+.st-manage-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.09);
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+.st-manage-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 /* Quick Links */
 .st-links {
     display: flex;
