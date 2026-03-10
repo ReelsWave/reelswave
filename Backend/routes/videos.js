@@ -7,7 +7,7 @@ import { generateScript } from '../services/scriptGenerator.js';
 import { generateVoiceover, getVoices } from '../services/voiceGenerator.js';
 import { fetchStockFootage } from '../services/stockFetcher.js';
 import { assembleVideo } from '../services/videoAssembler.js';
-import { getConnectUrl, getConnectedProfiles, createLateProfile } from '../services/lateService.js';
+import { getConnectUrl, getConnectedProfiles, createLateProfile, disconnectAccount } from '../services/lateService.js';
 import { acquire, release } from '../services/semaphore.js';
 
 const router = express.Router();
@@ -314,6 +314,21 @@ router.get('/connected-profiles', authMiddleware, async (req, res) => {
 
         const profiles = await getConnectedProfiles(profile.late_dev_profile_id);
         res.json({ profiles });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * DELETE /api/videos/disconnect-account
+ * Disconnect a connected social account
+ */
+router.delete('/disconnect-account', authMiddleware, async (req, res) => {
+    try {
+        const { accountId } = req.body;
+        if (!accountId) return res.status(400).json({ error: 'accountId required' });
+        await disconnectAccount(accountId);
+        res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

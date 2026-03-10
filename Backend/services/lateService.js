@@ -104,3 +104,18 @@ export async function getConnectedProfiles(profileId) {
     }
 }
 
+/**
+ * Disconnect (delete) a connected social account
+ * @param {string} accountId - The Late.dev account ID to remove
+ */
+export async function disconnectAccount(accountId) {
+    try {
+        await late.accounts.deleteAccount({
+            path: { accountId }
+        });
+    } catch (err) {
+        console.error('Late.dev disconnectAccount error:', err.message);
+        throw new Error(`Failed to disconnect account: ${err.message}`);
+    }
+}
+

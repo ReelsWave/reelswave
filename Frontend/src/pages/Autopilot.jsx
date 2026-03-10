@@ -98,6 +98,7 @@ function Autopilot({ session }) {
     const [saved, setSaved] = useState(false);
     const [connectedProfiles, setConnectedProfiles] = useState([]);
     const [connectingPlatform, setConnectingPlatform] = useState(null);
+    const [disconnectingPlatform, setDisconnectingPlatform] = useState(null);
 
     // Engine config
     const [enabled, setEnabled] = useState(false);
@@ -217,6 +218,30 @@ function Autopilot({ session }) {
             alert('Failed to connect platform. Please try again.');
         } finally {
             setConnectingPlatform(null);
+        }
+    };
+
+    const handleDisconnect = async (platformId) => {
+        const account = connectedProfiles.find(p => p.platform === platformId);
+        if (!account) return;
+        if (!window.confirm(`Disconnect ${platformId}? Auto-growth will stop posting to this channel.`)) return;
+        setDisconnectingPlatform(platformId);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const res = await fetch(`${API_URL}/api/videos/disconnect-account`, {
+                method: 'DELETE',
+                headers: {
+                    Authorization: `Bearer ${session.access_token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ accountId: account._id })
+            });
+            if (!res.ok) throw new Error('Failed to disconnect');
+            setConnectedProfiles(prev => prev.filter(p => p.platform !== platformId));
+        } catch (err) {
+            alert('Failed to disconnect. Please try again.');
+        } finally {
+            setDisconnectingPlatform(null);
         }
     };
 
@@ -386,19 +411,32 @@ function Autopilot({ session }) {
                                     <p className="ap-plat-desc">{desc}</p>
 
                                     {isEligible ? (
-                                        <button
-                                            className={`ap-plat-connect-btn ${connected ? 'done' : ''}`}
-                                            onClick={() => !connected && handleConnect(id)}
-                                            disabled={connecting || connected}
-                                        >
-                                            {connecting ? (
-                                                <span className="spinner" style={{ width: 13, height: 13, borderWidth: 2 }} />
-                                            ) : connected ? (
-                                                <><CheckCircle2 size={13} /> Connected</>
-                                            ) : (
-                                                <>Connect <ArrowRight size={13} /></>
+                                        <div className="ap-plat-btn-row">
+                                            <button
+                                                className={`ap-plat-connect-btn ${connected ? 'done' : ''}`}
+                                                onClick={() => !connected && handleConnect(id)}
+                                                disabled={connecting || connected || disconnectingPlatform === id}
+                                            >
+                                                {connecting ? (
+                                                    <span className="spinner" style={{ width: 13, height: 13, borderWidth: 2 }} />
+                                                ) : connected ? (
+                                                    <><CheckCircle2 size={13} /> Connected</>
+                                                ) : (
+                                                    <>Connect <ArrowRight size={13} /></>
+                                                )}
+                                            </button>
+                                            {connected && (
+                                                <button
+                                                    className="ap-plat-disconnect-btn"
+                                                    onClick={() => handleDisconnect(id)}
+                                                    disabled={disconnectingPlatform === id}
+                                                >
+                                                    {disconnectingPlatform === id ? (
+                                                        <span className="spinner" style={{ width: 11, height: 11, borderWidth: 2 }} />
+                                                    ) : 'Disconnect'}
+                                                </button>
                                             )}
-                                        </button>
+                                        </div>
                                     ) : (
                                         <div className="ap-plat-lock">
                                             <Crown size={14} />
