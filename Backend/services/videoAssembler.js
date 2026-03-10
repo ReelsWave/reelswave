@@ -295,16 +295,19 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             let foundMatch = false;
 
             if (spokenPart.length > 0 && timestamps && tsIndex < timestamps.length) {
-                // Determine if this exact word is the one expected by ElevenLabs, handling case where 
-                // elevenlabs combined words or stripped different characters
-                const elevenWord = (timestamps[tsIndex].word || '').toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()'"?]/g, '').trim();
-
-                if (elevenWord === spokenPart || elevenWord.includes(spokenPart) || spokenPart.includes(elevenWord)) {
-                    start = timestamps[tsIndex].start || 0;
-                    end = timestamps[tsIndex].end || (start + 0.3);
-                    tsIndex++;
-                    foundMatch = true;
-                    globalLastEndTime = end;
+                // Look ahead up to 3 positions to handle ElevenLabs inserting extra entries
+                // for emotion tags like [laughs], [sighs] which appear in timestamps but not assWords
+                for (let look = 0; look <= 3 && tsIndex + look < timestamps.length; look++) {
+                    const elevenWord = (timestamps[tsIndex + look].word || '').toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()'"?]/g, '').replace(/\[[^\]]*\]/g, '').trim();
+                    if (elevenWord === spokenPart || elevenWord.includes(spokenPart) || spokenPart.includes(elevenWord)) {
+                        tsIndex += look; // skip any emotion-tag entries before this word
+                        start = timestamps[tsIndex].start || 0;
+                        end = timestamps[tsIndex].end || (start + 0.3);
+                        tsIndex++;
+                        foundMatch = true;
+                        globalLastEndTime = end;
+                        break;
+                    }
                 }
             }
 
