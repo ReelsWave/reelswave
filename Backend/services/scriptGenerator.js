@@ -14,6 +14,9 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
  * @returns {Object} Script with segments and search terms
  */
 export async function generateScript({ topic, niche, tone = 'energetic', duration = 60, style = '' }) {
+  const targetWords = Math.round((duration / 60) * 160);
+  const minSegments = Math.ceil(duration / 5);
+
   const prompt = `You are a viral short-form video scriptwriter. Create a ${duration}-second script for a faceless video.
 
 TOPIC: ${topic}
@@ -24,12 +27,12 @@ VISUAL_STYLE_PROMPT: ${style}
 Rules:
 - Follow a 'hook, story, offer' structure
 - Start with a powerful HOOK (first 3 seconds) that stops the scroll
-- Keep sentences extremely concise (maximum 3-4 words per line) for fast, dynamic animation
+- WORD COUNT IS CRITICAL: The total word count of (hook + all segment texts + callToAction) MUST be ${targetWords} words. This is non-negotiable — it determines video length.
+- Each segment text should contain 2-4 short punchy sentences totalling 15-25 words. Sentences can be concise and fragmented for kinetic animation, but each segment MUST have enough content.
+- You MUST include at least ${minSegments} segments
 - DO NOT use any emojis anywhere in the script
 - Bold the most important, high-impact words using markdown (e.g. **bold**)
 - End with a strong call-to-action (the Offer)
-- The script should be ${duration} seconds when read at natural pace (~150 words per minute)
-- Target word count: ${Math.round((duration / 60) * 150)} words
 
 Return ONLY valid JSON in this exact format:
 {
@@ -47,7 +50,7 @@ Return ONLY valid JSON in this exact format:
   "hashtags": ["relevant", "hashtags", "for", "posting"]
 }
 
-Make the segments flow naturally. Each segment should be 3-6 seconds. Include 12-20 segments total for fast, engaging pacing. 
+Make the segments flow naturally. Each segment should be 4-6 seconds of narration (15-25 words). Include at least ${minSegments} segments — do NOT write fewer.
 The imagePrompt MUST describe highly detailed, visually compelling scenes for an AI Image Generator. 
 CRITICAL RULE FOR IMAGE PROMPTS: 
 1. CONSISTENCY IS KING. You must prepend the exact same \`characterDescription\` to every single \`imagePrompt\` if the character appears in that scene. Otherwise, the AI will draw a different person every time.
