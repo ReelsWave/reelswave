@@ -74,15 +74,19 @@ CRITICAL RULE FOR IMAGE PROMPTS:
     model: 'gpt-5-nano',
     messages: [{ role: 'user', content: prompt }],
     response_format: { type: 'json_object' },
-    max_completion_tokens: 4096
+    max_completion_tokens: 2048
   });
 
-  let scriptText = response.choices[0].message.content;
+  const choice = response.choices[0];
+  console.log(`[Script] finish_reason=${choice.finish_reason} tokens=${response.usage?.completion_tokens}`);
+
+  let scriptText = choice.message.content;
 
   let script;
   try {
     script = JSON.parse(scriptText);
   } catch (parseErr) {
+    console.error('[Script] Raw tail:', scriptText?.slice(-300));
     throw new Error(`Script JSON unparseable: ${parseErr.message}`);
   }
 
