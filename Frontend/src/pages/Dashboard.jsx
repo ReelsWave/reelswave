@@ -187,16 +187,22 @@ function Dashboard({ session }) {
                         </div>
                         <div className="vpm-footer">
                             <div className="vpm-title">{previewVideo.title}</div>
-                            <a
-                                href={previewVideo.video_url}
-                                download
-                                target="_blank"
-                                rel="noreferrer"
+                            <button
                                 className="btn btn-primary btn-sm"
+                                onClick={async () => {
+                                    const res = await fetch(previewVideo.video_url);
+                                    const blob = await res.blob();
+                                    const url = URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = `${previewVideo.title || 'video'}.mp4`;
+                                    a.click();
+                                    URL.revokeObjectURL(url);
+                                }}
                             >
                                 <Download size={14} />
                                 Download
-                            </a>
+                            </button>
                         </div>
                     </div>
                 </div>
