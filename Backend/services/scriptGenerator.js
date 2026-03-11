@@ -74,7 +74,7 @@ CRITICAL RULE FOR IMAGE PROMPTS:
     model: 'gpt-5-nano',
     messages: [{ role: 'user', content: prompt }],
     response_format: { type: 'json_object' },
-    max_completion_tokens: 16384
+    max_completion_tokens: 4096
   });
 
   let scriptText = response.choices[0].message.content;
