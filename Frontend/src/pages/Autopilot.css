@@ -842,6 +842,14 @@
     cursor: pointer;
 }
 
+.ap-tz-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+    display: block;
+    opacity: 0.7;
+}
+
 .ap-hint {
     font-size: 0.90rem;
     color: var(--text-muted);

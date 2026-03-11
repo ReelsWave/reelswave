@@ -101,6 +101,20 @@ function Autopilot({ session }) {
     const [disconnectingPlatform, setDisconnectingPlatform] = useState(null);
     const [disconnectConfirm, setDisconnectConfirm] = useState(null); // { id, name, Icon, color }
 
+    // Timezone helpers — store UTC in DB, display local to user
+    const localToUTC = (localTime) => {
+        const [h, m] = localTime.split(':').map(Number);
+        const d = new Date(); d.setHours(h, m, 0, 0);
+        return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+    };
+    const utcToLocal = (utcTime) => {
+        if (!utcTime) return null;
+        const [h, m] = utcTime.split(':').map(Number);
+        const d = new Date(); d.setUTCHours(h, m, 0, 0);
+        return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    };
+    const userTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
     // Engine config
     const [enabled, setEnabled] = useState(false);
     const [time, setTime] = useState('09:00');
@@ -141,9 +155,9 @@ function Autopilot({ session }) {
 
             if (profileData) {
                 setEnabled(profileData.auto_growth_enabled || false);
-                setTime(profileData.auto_growth_time || '09:00');
-                setTime2(profileData.auto_growth_time_2 || '14:00');
-                setTime3(profileData.auto_growth_time_3 || '20:00');
+                setTime(utcToLocal(profileData.auto_growth_time) || '09:00');
+                setTime2(utcToLocal(profileData.auto_growth_time_2) || '14:00');
+                setTime3(utcToLocal(profileData.auto_growth_time_3) || '20:00');
                 setSlot2Enabled(!!profileData.auto_growth_time_2);
                 setSlot3Enabled(!!profileData.auto_growth_time_3);
                 const s = profileData.auto_growth_settings || {};
@@ -180,9 +194,9 @@ function Autopilot({ session }) {
                 },
                 body: JSON.stringify({
                     enabled,
-                    time,
-                    time2: profile?.plan === 'dedicated' && slot2Enabled ? time2 : null,
-                    time3: profile?.plan === 'dedicated' && slot3Enabled ? time3 : null,
+                    time: localToUTC(time),
+                    time2: profile?.plan === 'dedicated' && slot2Enabled ? localToUTC(time2) : null,
+                    time3: profile?.plan === 'dedicated' && slot3Enabled ? localToUTC(time3) : null,
                     settings: { topic: topicPrompt, niche, tone, style, voiceId, duration },
                     settings2: profile?.plan === 'dedicated' ? slot2Config : null,
                     settings3: profile?.plan === 'dedicated' ? slot3Config : null,
@@ -513,6 +527,7 @@ function Autopilot({ session }) {
                                                 onChange={e => isDedicated ? setActiveSlotTime(e.target.value) : setTime(e.target.value)}
                                                 disabled={isDedicated && activeSlot !== 1 && !activeSlotEnabled}
                                             />
+                                            <span className="ap-tz-label">{userTZ}</span>
                                         </div>
                                     </div>
                                     <span className="ap-hint">
