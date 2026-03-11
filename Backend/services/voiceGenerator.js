@@ -99,11 +99,14 @@ async function generateVoiceoverElevenLabs({ text, voiceId, outputDir, jobId, ni
     const nicheKey = niche?.toLowerCase().replace(/\s+/g, '');
     const voiceSettings = NICHE_VOICE_SETTINGS[nicheKey] || NICHE_VOICE_SETTINGS[tone?.toLowerCase()] || NICHE_VOICE_SETTINGS.default;
 
+    // turbo_v2_5 doesn't support emotion tags — strip them
+    const cleanText = text.replace(/\[[^\]]+\]/g, '').replace(/\s+/g, ' ').trim();
+
     const response = await axios.post(
         `${ELEVENLABS_API_URL}/text-to-speech/${selectedVoiceId}/with-timestamps`,
         {
-            text,
-            model_id: 'eleven_v3',
+            text: cleanText,
+            model_id: 'eleven_turbo_v2_5',
             voice_settings: voiceSettings
         },
         {
