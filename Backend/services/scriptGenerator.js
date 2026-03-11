@@ -71,22 +71,19 @@ CRITICAL RULE FOR IMAGE PROMPTS:
 4. The image MUST NOT contain any large title text, subtitles, memes, or overlaid text baked into the image. It should look like a clean cinematic photograph without huge text blocks, though natural environmental text (like street signs) is fine.`;
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-5-nano',
+    model: 'gpt-5.4',
     messages: [{ role: 'user', content: prompt }],
     response_format: { type: 'json_object' },
-    max_completion_tokens: 2048
+    temperature: 0.8,
+    max_completion_tokens: 16384
   });
 
-  const choice = response.choices[0];
-  console.log(`[Script] finish_reason=${choice.finish_reason} tokens=${response.usage?.completion_tokens}`);
-
-  let scriptText = choice.message.content;
+  let scriptText = response.choices[0].message.content;
 
   let script;
   try {
     script = JSON.parse(scriptText);
   } catch (parseErr) {
-    console.error('[Script] Raw tail:', scriptText?.slice(-300));
     throw new Error(`Script JSON unparseable: ${parseErr.message}`);
   }
 
