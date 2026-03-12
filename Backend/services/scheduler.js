@@ -111,8 +111,7 @@ async function runAutoGrowthForUser(user, slot = 1) {
     }
 
     // Tell GPT to invent its own unique scenario each run for endless variety
-    const seed = Date.now();
-    const scenarioHint = `Invent a completely unique, specific everyday scenario that hasn't been done before (seed: ${seed}). Be creative and unexpected — avoid food, kitchens, and grocery scenarios.`;
+    const scenarioHint = `Invent a completely unique, specific everyday scenario that hasn't been done before. Be creative and unexpected — avoid food, kitchens, and grocery scenarios.`;
 
     // Define job-specific output directory
     const jobDir = path.join(OUTPUT_DIR, jobId);
