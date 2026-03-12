@@ -238,15 +238,20 @@ function Autopilot({ session }) {
 
     const handleDisconnect = (platformId) => {
         const platform = PLATFORMS.find(p => p.id === platformId);
-        setDisconnectConfirm(platform);
+        const account = connectedProfiles.find(p =>
+            p.platform?.toLowerCase() === platformId.toLowerCase() ||
+            p.network?.toLowerCase() === platformId.toLowerCase() ||
+            p.provider?.toLowerCase() === platformId.toLowerCase()
+        );
+        setDisconnectConfirm({ ...platform, account });
     };
 
     const confirmDisconnect = async () => {
-        const platformId = disconnectConfirm.id;
-        const account = connectedProfiles.find(p => p.platform === platformId);
-        if (!account) return;
+        const { account } = disconnectConfirm;
+        if (!account) { alert('Could not find connected account. Please refresh and try again.'); return; }
         const accountId = account._id || account.accountId || account.id;
-        if (!accountId) { alert('Could not resolve account ID. Please try again.'); return; }
+        if (!accountId) { alert('Could not resolve account ID. Please refresh and try again.'); return; }
+        const platformId = disconnectConfirm.id;
         setDisconnectingPlatform(platformId);
         setDisconnectConfirm(null);
         try {
@@ -260,7 +265,7 @@ function Autopilot({ session }) {
                 body: JSON.stringify({ accountId })
             });
             if (!res.ok) throw new Error('Failed to disconnect');
-            setConnectedProfiles(prev => prev.filter(p => p.platform !== platformId));
+            setConnectedProfiles(prev => prev.filter(p => (p._id || p.accountId || p.id) !== accountId));
         } catch (err) {
             alert('Failed to disconnect. Please try again.');
         } finally {
