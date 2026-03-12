@@ -38,7 +38,7 @@ ${customCTA ? `CALL TO ACTION (use this EXACT text verbatim as the callToAction 
 
 Formatting Rules:
 - Follow a 'hook, story, offer' structure
-- Start with a powerful HOOK (first 3 seconds) that stops the scroll
+- Start with a powerful HOOK that stops the scroll. CRITICAL: The FIRST 3 WORDS of the hook must work as a standalone thumbnail text — punchy, curiosity-driving, and impactful on their own (e.g. "YOU WASTED EVERYTHING", "NOBODY TELLS YOU", "THIS BROKE ME"). These 3 words will be displayed as captions on the thumbnail frame.
 - WORD COUNT IS CRITICAL: The total word count of (hook + all segment texts + callToAction) MUST be exactly ${targetWords} words. This determines video length — going over makes the video too long.
 - Each segment text must be ${minWordsPerSeg}–${maxWordsPerSeg} words. Use short sentences (3-5 words each) for caption display.
 - You MUST include exactly ${minSegments} segments — no more, no fewer
