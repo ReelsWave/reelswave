@@ -110,12 +110,14 @@ export async function getConnectedProfiles(profileId) {
  */
 export async function disconnectAccount(accountId) {
     try {
-        await late.accounts.deleteAccount({
+        console.log('[disconnectAccount] calling Late.dev with accountId:', accountId);
+        const res = await late.accounts.deleteAccount({
             path: { accountId }
         });
+        console.log('[disconnectAccount] Late.dev response:', JSON.stringify(res?.data));
     } catch (err) {
-        console.error('Late.dev disconnectAccount error:', err.message);
-        throw new Error(`Failed to disconnect account: ${err.message}`);
+        console.error('[disconnectAccount] Late.dev full error:', JSON.stringify(err?.response?.data || err?.message || err));
+        throw new Error(`Failed to disconnect account: ${err?.response?.data?.message || err.message}`);
     }
 }
 
