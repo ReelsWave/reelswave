@@ -234,6 +234,19 @@ router.get('/', authMiddleware, async (req, res) => {
  * DELETE /api/videos/:id
  * Delete a video
  */
+router.delete('/disconnect-account', authMiddleware, async (req, res) => {
+    try {
+        const { accountId } = req.body;
+        console.log('[disconnect-account] received accountId:', accountId);
+        if (!accountId) return res.status(400).json({ error: 'accountId required' });
+        await disconnectAccount(accountId);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('[disconnect-account] error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 router.delete('/:id', authMiddleware, async (req, res) => {
     try {
         const { data: video, error: fetchError } = await supabase
@@ -316,23 +329,6 @@ router.get('/connected-profiles', authMiddleware, async (req, res) => {
         console.log('[connected-profiles] raw accounts:', JSON.stringify(profiles, null, 2));
         res.json({ profiles });
     } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-/**
- * DELETE /api/videos/disconnect-account
- * Disconnect a connected social account
- */
-router.delete('/disconnect-account', authMiddleware, async (req, res) => {
-    try {
-        const { accountId } = req.body;
-        console.log('[disconnect-account] received accountId:', accountId);
-        if (!accountId) return res.status(400).json({ error: 'accountId required' });
-        await disconnectAccount(accountId);
-        res.json({ success: true });
-    } catch (err) {
-        console.error('[disconnect-account] error:', err.message);
         res.status(500).json({ error: err.message });
     }
 });
