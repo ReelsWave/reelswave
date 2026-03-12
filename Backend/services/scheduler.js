@@ -112,7 +112,7 @@ async function runAutoGrowthForUser(user, slot = 1) {
 
     // Tell GPT to invent its own unique scenario each run for endless variety
     const seed = Date.now();
-    const topicWithScenario = `${topic} — invent a completely unique, specific everyday scenario that hasn't been done before (seed: ${seed}). Be creative and unexpected — avoid food, kitchens, and grocery scenarios.`;
+    const scenarioHint = `Invent a completely unique, specific everyday scenario that hasn't been done before (seed: ${seed}). Be creative and unexpected — avoid food, kitchens, and grocery scenarios.`;
 
     // Define job-specific output directory
     const jobDir = path.join(OUTPUT_DIR, jobId);
@@ -125,7 +125,7 @@ async function runAutoGrowthForUser(user, slot = 1) {
     try {
         // Step 1: Generate Script
         console.log(`[Auto Growth ${userId}] Generating script...`);
-        const script = await generateScript({ topic: topicWithScenario, niche, tone, duration, style });
+        const script = await generateScript({ topic, niche, tone, duration, style, scenarioHint });
 
         // Step 2: Generate Voiceover
         console.log(`[Auto Growth ${userId}] Generating voiceover...`);

@@ -13,7 +13,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
  * @param {number} options.duration - Target duration in seconds (60-90)
  * @returns {Object} Script with segments and search terms
  */
-export async function generateScript({ topic, niche, tone = 'energetic', duration = 60, style = '' }) {
+export async function generateScript({ topic, niche, tone = 'energetic', duration = 60, style = '', scenarioHint = '' }) {
   const targetWords = Math.round((duration / 60) * 160);
   const minSegments = Math.ceil(duration / 6); // ~6s per segment
   // Words per segment: subtract ~15 each for hook and CTA, split the rest evenly
@@ -33,6 +33,7 @@ TOPIC: ${cleanTopic}
 NICHE: ${niche}
 TONE: ${tone}
 VISUAL_STYLE_PROMPT: ${style}
+${scenarioHint ? `SCENARIO INSTRUCTION (for your internal creative use only — do NOT read this aloud or include it in the script): ${scenarioHint}` : ''}
 ${customCTA ? `CALL TO ACTION (use this EXACT text verbatim as the callToAction field): "${customCTA}"` : ''}
 
 Formatting Rules:
