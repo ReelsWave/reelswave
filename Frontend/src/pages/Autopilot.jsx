@@ -256,6 +256,7 @@ function Autopilot({ session }) {
         setDisconnectConfirm(null);
         try {
             const { data: { session } } = await supabase.auth.getSession();
+            console.log('[disconnect] accountId:', accountId, 'session:', !!session, 'url:', `${API_URL}/api/videos/disconnect-account`);
             const res = await fetch(`${API_URL}/api/videos/disconnect-account`, {
                 method: 'DELETE',
                 headers: {
@@ -267,6 +268,7 @@ function Autopilot({ session }) {
             if (!res.ok) throw new Error('Failed to disconnect');
             setConnectedProfiles(prev => prev.filter(p => (p._id || p.accountId || p.id) !== accountId));
         } catch (err) {
+            console.error('[disconnect] error:', err);
             alert('Failed to disconnect. Please try again.');
         } finally {
             setDisconnectingPlatform(null);
