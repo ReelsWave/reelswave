@@ -110,18 +110,9 @@ async function runAutoGrowthForUser(user, slot = 1) {
         voiceId = 'pNInz6obpgDQGcFmaJgB';
     }
 
-    // Inject a random scenario category so GPT doesn't repeat the same situations
-    const SCENARIO_CATEGORIES = [
-        'a morning routine disaster', 'an online shopping fail', 'a gym or workout situation',
-        'a work from home struggle', 'a first date awkwardness', 'a road trip gone wrong',
-        'a social media addiction moment', 'a home DIY disaster', 'a phone battery anxiety situation',
-        'a public transport nightmare', 'a job interview fail', 'a party or social event',
-        'a late night snack mission', 'a laundry or chores situation', 'a streaming service binge',
-        'a weather-related chaos', 'a tech support struggle', 'a neighborhood drama',
-        'a moving or packing nightmare', 'an airport or travel situation'
-    ];
-    const randomScenario = SCENARIO_CATEGORIES[Math.floor(Math.random() * SCENARIO_CATEGORIES.length)];
-    const topicWithScenario = `${topic} — base it around: ${randomScenario}`;
+    // Tell GPT to invent its own unique scenario each run for endless variety
+    const seed = Date.now();
+    const topicWithScenario = `${topic} — invent a completely unique, specific everyday scenario that hasn't been done before (seed: ${seed}). Be creative and unexpected — avoid food, kitchens, and grocery scenarios.`;
 
     // Define job-specific output directory
     const jobDir = path.join(OUTPUT_DIR, jobId);
