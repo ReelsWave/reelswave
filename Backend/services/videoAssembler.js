@@ -322,7 +322,15 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             wordTimings.push({ word: rawWord, start, end });
         }
 
-        // Output a dialogue line for EACH word in the caption block, scanning the highlight forward 
+        // Dynamic font size: scale down when combined words are too long
+        const totalChars = captionWords.join(' ').length;
+        let dynFs = '';
+        if (totalChars > 22) dynFs = '{\\fs65}';
+        else if (totalChars > 17) dynFs = '{\\fs80}';
+        else if (totalChars > 12) dynFs = '{\\fs95}';
+        // else use style default (110)
+
+        // Output a dialogue line for EACH word in the caption block, scanning the highlight forward
         for (let j = 0; j < wordTimings.length; j++) {
             const currentTiming = wordTimings[j];
 
@@ -345,8 +353,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 }
             }
 
-            // Lock to absolute center so the baseline doesn't jump when words scale
-            activeLineText = `{\\an5}${activeLineText}`;
+            // Lock to absolute center + apply dynamic font size if needed
+            activeLineText = `{\\an5}${dynFs}${activeLineText}`;
 
             // Bridging micro-pauses:
             let renderStart = currentTiming.start;
