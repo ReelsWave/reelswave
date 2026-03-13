@@ -39,7 +39,7 @@ export async function fetchStockFootage({ searchTerms, outputDir, jobId, orienta
                 enhancedPrompt += ", he has only one arm. His left shoulder is completely bare and flat. The left sleeve of the jersey hangs loose and empty. Only his right arm is visible.";
             }
 
-            enhancedPrompt += ", masterpiece, cinematic lighting, highly detailed, photorealistic, 8k resolution, uncropped face";
+            enhancedPrompt += ", masterpiece, cinematic lighting, highly detailed, 8k resolution, uncropped face";
 
             // Reverting to Flux Schnell for maximum profit margins since 'Dev' still struggles with amputations
             const result = await fal.subscribe("fal-ai/flux/schnell", {
