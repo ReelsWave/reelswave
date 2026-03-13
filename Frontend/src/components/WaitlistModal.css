@@ -11,8 +11,8 @@
 }
 
 .wl-modal {
-    background: #111;
-    border: 1px solid #222;
+    background: var(--bg-secondary);
+    border: 1px solid var(--bg-card-hover);
     border-radius: 16px;
     padding: 40px;
     width: 100%;
@@ -30,10 +30,10 @@
     position: absolute;
     top: 16px;
     right: 16px;
-    background: #1e1e1e;
-    border: 1px solid #333;
+    background: var(--bg-card);
+    border: 1px solid var(--bg-card-hover);
     border-radius: 8px;
-    color: #aaa;
+    color: var(--text-secondary);
     width: 32px;
     height: 32px;
     display: flex;
@@ -44,20 +44,20 @@
 }
 
 .wl-close:hover {
-    background: #2a2a2a;
-    color: #fff;
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
 }
 
 .wl-header h2,
 .wl-success h2 {
     font-size: 1.6rem;
     font-weight: 700;
-    color: #fff;
+    color: var(--text-primary);
     margin: 0 0 8px;
 }
 
 .wl-sub {
-    color: #888;
+    color: var(--text-secondary);
     font-size: 0.95rem;
     margin: 0 0 24px;
     line-height: 1.5;
@@ -73,14 +73,14 @@
 .wl-counter-num {
     font-size: 2rem;
     font-weight: 800;
-    background: linear-gradient(135deg, #a78bfa, #60a5fa);
+    background: var(--gradient-primary);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
 
 .wl-counter-label {
-    color: #666;
+    color: var(--text-muted);
     font-size: 0.9rem;
 }
 
@@ -91,10 +91,10 @@
 }
 
 .wl-input {
-    background: #1a1a1a;
-    border: 1px solid #2a2a2a;
+    background: var(--bg-input);
+    border: 1px solid var(--bg-card-hover);
     border-radius: 10px;
-    color: #fff;
+    color: var(--text-primary);
     font-size: 1rem;
     padding: 14px 16px;
     outline: none;
@@ -102,20 +102,20 @@
 }
 
 .wl-input:focus {
-    border-color: #7c3aed;
+    border-color: var(--accent);
 }
 
 .wl-input::placeholder {
-    color: #444;
+    color: var(--text-muted);
 }
 
 .wl-btn {
-    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    background: var(--gradient-primary);
     border: none;
     border-radius: 10px;
-    color: #fff;
+    color: #000;
     font-size: 1rem;
-    font-weight: 600;
+    font-weight: 700;
     padding: 14px;
     cursor: pointer;
     transition: opacity 0.15s, transform 0.1s;
@@ -140,7 +140,7 @@
 
 .wl-note {
     text-align: center;
-    color: #444;
+    color: var(--text-muted);
     font-size: 0.8rem;
     margin: 16px 0 0;
 }
@@ -158,11 +158,11 @@
 
 .wl-position {
     font-size: 1.1rem;
-    color: #aaa;
+    color: var(--text-secondary);
     margin: 0 0 12px;
 }
 
 .wl-position strong {
-    color: #fff;
+    color: var(--accent);
     font-size: 1.3rem;
 }

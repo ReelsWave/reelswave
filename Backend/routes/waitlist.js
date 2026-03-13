@@ -5,7 +5,7 @@ import { supabase } from '../middleware/auth.js';
 const router = express.Router();
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const COUNT_OFFSET = 1200; // Start counter from this number
+const COUNT_OFFSET = 1237; // Start counter from this number
 
 /**
  * POST /api/waitlist
