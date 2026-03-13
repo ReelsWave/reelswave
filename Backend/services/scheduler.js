@@ -111,16 +111,7 @@ async function runAutoGrowthForUser(user, slot = 1) {
     }
 
     // Tell GPT to invent its own unique scenario + character each run for endless variety
-    const characters = [
-        'a tired dad', 'a college student', 'a new employee on their first day', 'an overconfident gym bro',
-        'a clueless tourist', 'a stressed mom', 'a retired grandpa', 'a broke 20-something',
-        'an overly competitive coworker', 'a nervous first-time driver', 'a hypochondriac',
-        'a guy who thinks he\'s a genius', 'a chronically late person', 'an online shopping addict',
-        'a person who never asks for help', 'an overthinker', 'a procrastinator at their limit',
-        'a people-pleaser', 'someone having the worst day of their life', 'a total cheapskate'
-    ];
-    const randomCharacter = characters[Math.floor(Math.random() * characters.length)];
-    const scenarioHint = `The main character must be: ${randomCharacter}. Invent a completely unique, specific everyday scenario for them that hasn't been done before. Be creative and unexpected — avoid food, kitchens, and grocery scenarios.`;
+    const scenarioHint = `Invent a completely unique main character (be specific — give them a personality, quirk, or life situation) and a specific everyday scenario for them that hasn't been done before. Be creative and unexpected — avoid food, kitchens, and grocery scenarios.`;
 
     // Define job-specific output directory
     const jobDir = path.join(OUTPUT_DIR, jobId);
