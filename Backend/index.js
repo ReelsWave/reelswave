@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import videoRoutes from './routes/videos.js';
 import paymentRoutes from './routes/payments.js';
+import waitlistRoutes from './routes/waitlist.js';
 import { initScheduler } from './services/scheduler.js';
 import { authMiddleware } from './middleware/auth.js';
 
@@ -58,6 +59,7 @@ app.get('/api/health', (req, res) => {
 // Routes
 app.use('/api/videos', videoRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/waitlist', waitlistRoutes);
 
 // Serve generated videos temporarily
 app.use('/api/output', express.static('output'));

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Flame, Ghost, Brain, Lightbulb, TrendingUp, Dumbbell, ChefHat, Atom, Sparkles, Mic, PenLine, Smartphone, MessageSquareText, Hash, Zap, Play, ArrowRight, Check, Star, Youtube, Instagram, Music2, Radio } from 'lucide-react';
 import PremiumButton from '../components/PremiumButton';
+import WaitlistModal from '../components/WaitlistModal';
 import './Landing.css';
 
 const NICHES = [
@@ -32,6 +33,7 @@ const PRICES = {
 function Landing({ session }) {
     const navigate = useNavigate();
     const [billing, setBilling] = useState('monthly');
+    const [waitlistOpen, setWaitlistOpen] = useState(false);
 
     const price = PRICES[billing];
     const moEquiv = {
@@ -310,7 +312,7 @@ function Landing({ session }) {
                                     <li><Check size={16} /> <span>No watermark</span></li>
                                     <li><Check size={16} /> <span>1080p export</span></li>
                                 </ul>
-                                <Link to={`/checkout?plan=basic&billing=${billing}`} className="price-btn">Get Started</Link>
+                                <button className="price-btn" onClick={() => setWaitlistOpen(true)}>Join Waitlist</button>
                             </div>
                         </div>
 
@@ -339,7 +341,7 @@ function Landing({ session }) {
                                     <li className="highlight"><Zap size={14} /> <span>Auto Growth — 1 video/day</span></li>
                                     <li className="highlight"><Zap size={14} /> <span>Multi-platform publishing</span></li>
                                 </ul>
-                                <Link to={`/checkout?plan=pro&billing=${billing}`} className="price-btn primary">Get Pro</Link>
+                                <button className="price-btn primary" onClick={() => setWaitlistOpen(true)}>Join Waitlist</button>
                             </div>
                         </div>
 
@@ -367,7 +369,7 @@ function Landing({ session }) {
                                     <li className="highlight"><Zap size={14} /> <span>Per-slot voice &amp; style config</span></li>
                                     <li className="highlight"><Zap size={14} /> <span>Priority rendering</span></li>
                                 </ul>
-                                <Link to={`/checkout?plan=dedicated&billing=${billing}`} className="price-btn">Get Dedicated</Link>
+                                <button className="price-btn" onClick={() => setWaitlistOpen(true)}>Join Waitlist</button>
                             </div>
                         </div>
                     </div>
@@ -410,6 +412,8 @@ function Landing({ session }) {
                     </div>
                 </div>
             </footer>
+
+            <WaitlistModal isOpen={waitlistOpen} onClose={() => setWaitlistOpen(false)} />
         </div>
     );
 }

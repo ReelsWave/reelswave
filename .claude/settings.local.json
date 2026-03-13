@@ -14,7 +14,20 @@
       "Bash(npm install ffmpeg-static ffprobe-static)",
       "Bash(npm uninstall ffmpeg-static ffprobe-static)",
       "Bash(npm install)",
-      "Bash(del \"C:\\\\Users\\\\kfits\\\\Projects\\\\ReelsWave\\\\Frontend\\\\public\\\\favicon.svg\")"
+      "Bash(del \"C:\\\\Users\\\\kfits\\\\Projects\\\\ReelsWave\\\\Frontend\\\\public\\\\favicon.svg\")",
+      "Bash(python create_finance.py)",
+      "Bash(pip install openpyxl)",
+      "Bash(python scripts/recalc.py \"C:\\\\Users\\\\kfits\\\\Projects\\\\ReelsWave\\\\ReelsWave_Finance.xlsx\")",
+      "Bash(npm install express-rate-limit)",
+      "Bash(node --check index.js)",
+      "Bash(node --check routes/payments.js)",
+      "Bash(node --check services/scheduler.js)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx vite build)",
+      "Bash(xargs grep:*)",
+      "Bash(grep -rl \"Preview Required\\\\|preview_start\\\\|verification_workflow\" C:/Users/kfits/.claude/ --include=*.json --include=*.md)",
+      "WebSearch",
+      "Bash(npm install:*)"
     ]
   }
 }
