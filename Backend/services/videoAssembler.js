@@ -241,8 +241,12 @@ function buildAssCaptions(script, audioDuration, jobId, outputDir, timestamps) {
         script.callToAction
     ].join(' ');
 
-    // Strip markdown and ElevenLabs audio cue tags (e.g. [laughs], [sighs]) — not spoken words, no timestamps
-    const cleanText = rawText.replace(/\*\*/g, '').replace(/_/g, '').replace(/\[[^\]]*\]/g, '');
+    // Strip all markup — ** bold, *emphasis*, _underline_, [vocalizations] — none are spoken/visible in captions
+    const cleanText = rawText
+        .replace(/\*\*([^*]+)\*\*/g, '$1') // **bold** → text
+        .replace(/\*([^*]+)\*/g, '$1')     // *emphasis* → text  (Inworld delivery cue, not a caption word)
+        .replace(/_/g, '')
+        .replace(/\[[^\]]*\]/g, '');        // [sigh], [laugh] etc.
 
     // Split text into words (retaining connected emojis)
     const assWords = cleanText.split(/\s+/).filter(w => w.length > 0);
