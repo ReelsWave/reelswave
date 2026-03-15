@@ -15,11 +15,11 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
  */
 export async function generateScript({ topic, niche, tone = 'energetic', duration = 60, style = '', scenarioHint = '' }) {
   const targetWords = Math.round((duration / 60) * 160);
-  const minSegments = Math.ceil(duration / 6); // ~6s per segment
+  const minSegments = Math.ceil(duration / 4); // ~4s per image → more visual variety
   // Words per segment: subtract ~15 each for hook and CTA, split the rest evenly
   const wordsPerSegment = Math.round((targetWords - 30) / minSegments);
-  const minWordsPerSeg = Math.max(8, wordsPerSegment - 3);
-  const maxWordsPerSeg = wordsPerSegment + 4;
+  const minWordsPerSeg = Math.max(5, wordsPerSegment - 2);
+  const maxWordsPerSeg = wordsPerSegment + 3;
 
   // Extract any "Mention AT THE END:" instruction from the topic
   const ctaMatch = topic.match(/mention\s+at\s+the\s+end\s*:\s*(.+)/i);
