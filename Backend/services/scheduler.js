@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import { supabase } from '../middleware/auth.js';
-import { generateScript } from './scriptGenerator.js';
+import { generateScript, buildCreativeConstraint } from './scriptGenerator.js';
 import { generateVoiceover } from './voiceGenerator.js';
 import { fetchStockFootage } from './stockFetcher.js';
 import { assembleVideo } from './videoAssembler.js';
@@ -133,6 +133,8 @@ CHARACTER:
 
 SETTING: ${settingType}
 CONFLICT / STORY ENGINE: ${conflictType}
+
+ADDITIONAL CREATIVE CONSTRAINT (must also incorporate): ${buildCreativeConstraint()}
 
 Build the entire script around this specific character in this specific setting facing this specific conflict. The character must feel like a real, fully-formed person — not a generic placeholder. Every visual scene must reflect their appearance, personality, and the setting above.
 
