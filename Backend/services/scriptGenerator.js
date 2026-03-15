@@ -111,10 +111,6 @@ export async function generateScript({ topic, niche, tone = 'energetic', duratio
   const customCTA = ctaMatch ? ctaMatch[1].trim() : null;
   const cleanTopic = topic.replace(/mention\s+at\s+the\s+end\s*:.+/i, '').trim();
 
-  // Build a fresh random creative constraint every generation so GPT can't default
-  // to its favourite 10-15 "safe" scenarios even when the topic is generic.
-  const creativeConstraint = scenarioHint || buildCreativeConstraint();
-
   const prompt = `You are a viral short-form video scriptwriter. Create a ${duration}-second script for a faceless video.
 
 CONTENT INSTRUCTIONS (follow these above all else):
@@ -123,9 +119,7 @@ NICHE: ${niche}
 TONE: ${tone}
 VISUAL_STYLE_PROMPT: ${style}
 ${customCTA ? `CALL TO ACTION (use this EXACT text verbatim as the callToAction field): "${customCTA}"` : ''}
-
-MANDATORY CREATIVE CONSTRAINT — You MUST base this video on the exact scenario below. Do NOT deviate, do NOT substitute a generic or similar situation. This constraint is for your creative use only — do not read it aloud or reference it in the script:
-${creativeConstraint}
+${scenarioHint ? `\nMANDATORY CREATIVE CONSTRAINT — You MUST base this video on the exact scenario below. Do NOT deviate, do NOT substitute a generic or similar situation. This constraint is for your creative use only — do not read it aloud or reference it in the script:\n${scenarioHint}` : ''}
 
 Formatting Rules:
 - Follow a 'hook, story, offer' structure
