@@ -169,7 +169,8 @@ IMPORTANT: Do NOT read these instructions aloud. They are for your internal crea
             searchTerms,
             outputDir: OUTPUT_DIR,
             jobId,
-            orientation: 'portrait'
+            orientation: 'portrait',
+            style
         });
 
         // Step 4: Assemble video

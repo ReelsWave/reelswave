@@ -55,7 +55,8 @@ const processJob = async (jobId, userId, topic, niche, tone, duration, voiceId, 
             searchTerms,
             outputDir: OUTPUT_DIR,
             jobId,
-            orientation: 'portrait'
+            orientation: 'portrait',
+            style   // guaranteed style injection in stockFetcher — don't rely on GPT
         });
 
         // Step 4: Assemble video

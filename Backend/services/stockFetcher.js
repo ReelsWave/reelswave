@@ -14,7 +14,7 @@ dotenv.config();
  * @param {string} options.orientation - Video orientation (portrait, landscape)
  * @returns {Array} Paths to downloaded image clips
  */
-export async function fetchStockFootage({ searchTerms, outputDir, jobId, orientation = 'portrait' }) {
+export async function fetchStockFootage({ searchTerms, outputDir, jobId, orientation = 'portrait', style = '' }) {
     if (!process.env.FAL_KEY) {
         throw new Error('FAL_KEY is missing from environment variables.');
     }
@@ -30,15 +30,21 @@ export async function fetchStockFootage({ searchTerms, outputDir, jobId, orienta
         try {
             console.log(`[stockFetcher] Submitting Fal.ai Flux Schnell generation task ${i + 1}/${searchTerms.length}...`);
 
-            // Clean prompt of any special characters that might break the API
-            const cleanPrompt = prompt.replace(/[^a-zA-Z0-9\s,.-]/g, '');
+            // Strip GPT-appended style suffix — we'll re-inject it ourselves below
+            // (GPT is inconsistent; guaranteed injection here ensures every image matches)
+            let strippedPrompt = style ? prompt.replace(new RegExp(style.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '') : prompt;
 
-            // For complex anatomy, Flux requires extremely explicit positive instruction rather than negative constraints
+            // Clean prompt of special characters that can break the API
+            const cleanPrompt = strippedPrompt.replace(/[^a-zA-Z0-9\s,.()'"-]/g, '').replace(/\s+/g, ' ').trim();
+
+            // For complex anatomy, Flux requires extremely explicit positive instruction
             let enhancedPrompt = cleanPrompt;
             if (cleanPrompt.toLowerCase().includes('missing arm') || cleanPrompt.toLowerCase().includes('one arm')) {
                 enhancedPrompt += ", he has only one arm. His left shoulder is completely bare and flat. The left sleeve of the jersey hangs loose and empty. Only his right arm is visible.";
             }
 
+            // Always append style last — guaranteed on every single image
+            if (style) enhancedPrompt += `, ${style}`;
             enhancedPrompt += ", masterpiece, cinematic lighting, highly detailed, 8k resolution, uncropped face";
 
             // Reverting to Flux Schnell for maximum profit margins since 'Dev' still struggles with amputations
