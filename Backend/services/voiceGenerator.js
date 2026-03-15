@@ -48,9 +48,8 @@ const INWORLD_VOICES = [
 ];
 
 function inworldAuthHeader() {
-    // Inworld Basic auth: base64-encode the raw API key
-    const encoded = Buffer.from(process.env.INWORLD_API_KEY || '').toString('base64');
-    return `Basic ${encoded}`;
+    // Inworld gives you the API key already base64-encoded — use it directly
+    return `Basic ${process.env.INWORLD_API_KEY || ''}`;
 }
 
 /**
