@@ -940,10 +940,10 @@
     box-shadow: 0 0 14px color-mix(in srgb, var(--nc, var(--accent)) 18%, transparent);
 }
 
-/* ── Style Cards Grid — 2 columns × 6 rows ── */
+/* ── Style Cards Grid — 6 columns × 2 rows ── */
 .ap-style-cards-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 8px;
     padding: 4px 0 8px;
 }
