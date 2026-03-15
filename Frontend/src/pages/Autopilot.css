@@ -584,12 +584,20 @@
     grid-template-columns: 1fr 1fr;
     gap: 32px;
     margin-bottom: 32px;
+    align-items: stretch;
 }
 
 .ap-engine-col {
     display: flex;
     flex-direction: column;
     gap: 28px;
+}
+
+/* Make the Visual Style field stretch to fill remaining column height */
+.ap-engine-col .ap-field:last-child {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 /* ── Fields ── */
@@ -944,8 +952,10 @@
 .ap-style-cards-grid {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
+    grid-auto-rows: 1fr;
     gap: 8px;
     padding: 4px 0 8px;
+    flex: 1;
 }
 
 .ap-style-card-wrap {
@@ -959,7 +969,8 @@
 
 .ap-style-card-wrap .style-card {
     width: 100%;
-    height: 100px;
+    flex: 1;
+    min-height: 80px;
 }
 
 .ap-style-card-wrap .style-label {
