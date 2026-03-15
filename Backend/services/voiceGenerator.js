@@ -6,8 +6,7 @@ import OpenAI from 'openai';
 dotenv.config();
 
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1';
-// Inworld TTS is accessed via AIML API — not Inworld's own endpoint
-const AIMLAPI_TTS_URL = 'https://api.aimlapi.com/v1/tts';
+const INWORLD_TTS_URL   = 'https://api.inworld.ai/tts/v1/voice';
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // ─── ElevenLabs ──────────────────────────────────────────────────────────────
@@ -48,24 +47,30 @@ const INWORLD_VOICES = [
     { id: 'Theodore', name: 'Theodore', labels: { gender: 'Male',   age: 'Old' } },
 ];
 
-function aimlAuthHeader() {
-    return `Bearer ${process.env.INWORLD_API_KEY || ''}`;
+function inworldAuthHeader() {
+    // Inworld Basic auth: base64-encode the raw API key
+    const encoded = Buffer.from(process.env.INWORLD_API_KEY || '').toString('base64');
+    return `Basic ${encoded}`;
 }
 
 /**
- * Call AIML API TTS and return an MP3 Buffer.
- * Response is { audio: { url: "https://cdn.aimlapi.com/..." } } — we fetch the CDN URL.
+ * Call Inworld TTS directly and return an MP3 Buffer.
+ * Response: { audioContent: "<base64 MP3>" }
  */
-async function callAimlTTS(text, voice) {
+async function callInworldTTS(text, voice) {
     const response = await axios.post(
-        AIMLAPI_TTS_URL,
-        { model: 'inworld/tts-1-5-max', text, voice, format: 'mp3' },
-        { headers: { Authorization: aimlAuthHeader(), 'Content-Type': 'application/json' } }
+        INWORLD_TTS_URL,
+        {
+            text,
+            voiceId:  voice,
+            modelId:  'inworld-tts-1.5-max',
+            audioConfig: { audioEncoding: 'MP3', sampleRateHertz: 48000 }
+        },
+        { headers: { Authorization: inworldAuthHeader(), 'Content-Type': 'application/json' } }
     );
-    const audioUrl = response.data?.audio?.url;
-    if (!audioUrl) throw new Error(`AIML TTS: no audio URL in response — ${JSON.stringify(response.data)}`);
-    const mp3 = await axios.get(audioUrl, { responseType: 'arraybuffer' });
-    return Buffer.from(mp3.data);
+    const b64 = response.data?.audioContent;
+    if (!b64) throw new Error(`Inworld TTS: no audioContent in response — ${JSON.stringify(response.data)}`);
+    return Buffer.from(b64, 'base64');
 }
 
 // ─── OpenAI voice mapping ─────────────────────────────────────────────────────
@@ -131,8 +136,8 @@ async function generateVoiceoverInworld({ text, voiceId, outputDir, jobId }) {
     const cleanText = text.replace(/\[[^\]]+\]/g, '').replace(/\s+/g, ' ').trim();
     const selectedVoice = voiceId || INWORLD_DEFAULT_VOICE;
 
-    // 1. Generate speech via AIML API → returns CDN URL → download MP3
-    const audioBuffer = await callAimlTTS(cleanText, selectedVoice);
+    // 1. Generate speech via Inworld direct API
+    const audioBuffer = await callInworldTTS(cleanText, selectedVoice);
     const audioPath = path.join(outputDir, `${jobId}_voiceover.mp3`);
     fs.writeFileSync(audioPath, audioBuffer);
 
@@ -252,7 +257,7 @@ async function generateVoiceoverOpenAI({ text, outputDir, jobId, niche, tone }) 
  */
 export async function generateInworldPreview(voiceId) {
     const sampleText = `Hey! I'm ${voiceId}. I'm ready to bring your content to life.`;
-    return callAimlTTS(sampleText, voiceId);
+    return callInworldTTS(sampleText, voiceId);
 }
 
 // ─── Main entry point ─────────────────────────────────────────────────────────
