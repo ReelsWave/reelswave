@@ -132,13 +132,40 @@ const processJob = async (jobId, userId, topic, niche, tone, duration, voiceId, 
     }
 };
 
+// In-memory preview cache: voiceId → Buffer
+const previewCache = new Map();
+let previewWarmupStarted = false;
+
+/**
+ * Pre-generate all Inworld voice previews in the background so the first click is instant.
+ * Runs once when the voices endpoint is first hit.
+ */
+async function warmupPreviews(voices) {
+    if (previewWarmupStarted) return;
+    previewWarmupStarted = true;
+    const inworldVoices = voices.filter(v => v.category === 'inworld' && !previewCache.has(v.id));
+    if (inworldVoices.length === 0) return;
+    console.log(`[Preview warmup] Pre-generating ${inworldVoices.length} Inworld voice previews...`);
+    // Fire all concurrently — Inworld allows 100 RPS
+    await Promise.allSettled(inworldVoices.map(async v => {
+        try {
+            const buf = await generateInworldPreview(v.id);
+            previewCache.set(v.id, buf);
+        } catch (e) {
+            console.warn(`[Preview warmup] ${v.id} failed: ${e.message}`);
+        }
+    }));
+    console.log(`[Preview warmup] Done — ${previewCache.size} previews cached`);
+}
+
 /**
  * GET /api/videos/voices
- * Get available ElevenLabs voices
  */
 router.get('/voices', async (req, res) => {
     try {
         const voices = await getVoices();
+        // Kick off background pre-generation — don't await, response goes out immediately
+        warmupPreviews(voices).catch(() => {});
         res.json({ voices });
     } catch (err) {
         console.error('Failed to fetch voices:', err.message);
@@ -148,14 +175,18 @@ router.get('/voices', async (req, res) => {
 
 /**
  * GET /api/videos/voice-preview/:voiceId
- * Stream a short Inworld TTS audio sample — no auth required so <Audio> can load it directly
+ * Serve from in-memory cache if available, otherwise generate live.
  */
 router.get('/voice-preview/:voiceId', async (req, res) => {
     try {
         const { voiceId } = req.params;
-        const audioBuffer = await generateInworldPreview(voiceId);
+        let audioBuffer = previewCache.get(voiceId);
+        if (!audioBuffer) {
+            audioBuffer = await generateInworldPreview(voiceId);
+            previewCache.set(voiceId, audioBuffer);
+        }
         res.set('Content-Type', 'audio/mpeg');
-        res.set('Cache-Control', 'public, max-age=86400'); // cache 24h — same voice = same sample
+        res.set('Cache-Control', 'public, max-age=86400');
         res.send(audioBuffer);
     } catch (err) {
         console.error('Voice preview error:', err.message);
