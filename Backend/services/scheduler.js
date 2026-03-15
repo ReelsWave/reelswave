@@ -110,8 +110,33 @@ async function runAutoGrowthForUser(user, slot = 1) {
         voiceId = 'pNInz6obpgDQGcFmaJgB';
     }
 
-    // Tell GPT to invent its own unique scenario + character each run for endless variety
-    const scenarioHint = `Invent a completely unique main character (be specific — give them a personality, quirk, or life situation) and a specific everyday scenario for them that hasn't been done before. Be creative and unexpected — avoid food, kitchens, and grocery scenarios.`;
+    // Build a fully randomised character + scenario seed so GPT starts from a different place every single run
+    const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+    const charGender      = pick(['man', 'woman', 'teenage boy', 'teenage girl', 'elderly man', 'elderly woman', 'non-binary person']);
+    const charAge         = pick(['16', '19', '24', '31', '38', '45', '52', '67', '73']);
+    const charBackground  = pick(['Nigerian', 'Japanese', 'Brazilian', 'Pakistani', 'Haitian', 'Russian', 'Mexican', 'Filipino', 'Egyptian', 'Irish', 'Indian', 'Korean', 'Jamaican', 'Turkish', 'Colombian', 'Vietnamese', 'Greek', 'Peruvian', 'Ghanaian', 'Swedish']);
+    const charOccupation  = pick(['substitute teacher', 'late-night security guard', 'food-truck owner', 'tattoo artist', 'school janitor', 'freelance photographer', 'rideshare driver', 'barista', 'veterinary tech', 'pawn-shop clerk', 'night-shift nurse', 'street musician', 'personal trainer', 'delivery driver', 'real-estate agent', 'dog groomer', 'librarian', 'social worker', 'mechanic', 'electrician', 'data-entry clerk', 'marine biologist', 'physical therapist', 'firefighter', 'plumber']);
+    const charQuirk       = pick(['obsessively colour-codes everything', 'talks out loud to themselves when nervous', 'collects vintage lighters but doesn\'t smoke', 'keeps a notebook of every person who was rude to them', 'can\'t stop doing mental maths', 'rehearses arguments in the shower', 'secretly watches kids\' cartoons to decompress', 'refuses to use elevators', 'can identify any song in 3 notes', 'always arrives 45 minutes early', 'has a strict bedtime routine they can\'t break', 'writes anonymous sticky-note compliments for strangers', 'snorts when they laugh but tries to suppress it', 'still handwrites every reminder', 'memorises licence plates without meaning to']);
+    const charTrait       = pick(['deeply introverted', 'disgustingly optimistic', 'chronically late', 'painfully honest', 'secretly generous', 'quietly competitive', 'socially awkward but kind', 'blunt to a fault', 'emotionally guarded', 'absurdly detail-oriented']);
+    const settingType     = pick(['workplace', 'public transport', 'hospital waiting room', 'parking lot', 'apartment building hallway', 'gym locker room', 'library', 'laundromat', 'DMV office', 'airport gate', 'community college classroom', 'highway rest stop', 'rooftop', 'empty parking garage', 'bank queue', 'pharmacy', 'car wash', 'pawn shop', 'thrift store', 'courthouse lobby']);
+    const conflictType    = pick(['a misunderstanding that spirals out of control', 'a small act of kindness that backfires unexpectedly', 'discovering a secret about someone they trusted', 'being forced into an uncomfortable situation they can\'t escape', 'one tiny mistake that keeps getting worse', 'an unexpected reunion with someone from their past', 'standing up for themselves for the first time', 'having to make an impossible choice on the spot', 'realising they were completely wrong about something', 'a random stranger changing their entire perspective']);
+
+    const scenarioHint = `
+CREATE A 100% UNIQUE VIDEO. You MUST use ALL of the following randomly assigned attributes — do NOT change, soften, or ignore any of them:
+
+CHARACTER:
+- A ${charAge}-year-old ${charBackground} ${charGender}
+- Occupation: ${charOccupation}
+- Defining quirk: ${charQuirk}
+- Personality trait: ${charTrait}
+
+SETTING: ${settingType}
+CONFLICT / STORY ENGINE: ${conflictType}
+
+Build the entire script around this specific character in this specific setting facing this specific conflict. The character must feel like a real, fully-formed person — not a generic placeholder. Every visual scene must reflect their appearance, personality, and the setting above.
+
+IMPORTANT: Do NOT read these instructions aloud. They are for your internal creative use only — the narration should feel natural, not like a character description being recited.`.trim();
 
     // Define job-specific output directory
     const jobDir = path.join(OUTPUT_DIR, jobId);
