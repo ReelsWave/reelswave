@@ -4,7 +4,7 @@ import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { authMiddleware, supabase } from '../middleware/auth.js';
 import { generateScript } from '../services/scriptGenerator.js';
-import { generateVoiceover, getVoices } from '../services/voiceGenerator.js';
+import { generateVoiceover, getVoices, generateInworldPreview } from '../services/voiceGenerator.js';
 import { fetchStockFootage } from '../services/stockFetcher.js';
 import { assembleVideo } from '../services/videoAssembler.js';
 import { getConnectUrl, getConnectedProfiles, createLateProfile, disconnectAccount } from '../services/lateService.js';
@@ -143,6 +143,23 @@ router.get('/voices', async (req, res) => {
     } catch (err) {
         console.error('Failed to fetch voices:', err.message);
         res.status(500).json({ error: 'Failed to fetch voices' });
+    }
+});
+
+/**
+ * GET /api/videos/voice-preview/:voiceId
+ * Stream a short Inworld TTS audio sample — no auth required so <Audio> can load it directly
+ */
+router.get('/voice-preview/:voiceId', async (req, res) => {
+    try {
+        const { voiceId } = req.params;
+        const audioBuffer = await generateInworldPreview(voiceId);
+        res.set('Content-Type', 'audio/mpeg');
+        res.set('Cache-Control', 'public, max-age=86400'); // cache 24h — same voice = same sample
+        res.send(audioBuffer);
+    } catch (err) {
+        console.error('Voice preview error:', err.message);
+        res.status(500).json({ error: 'Preview generation failed' });
     }
 });
 

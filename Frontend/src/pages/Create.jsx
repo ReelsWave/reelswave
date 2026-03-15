@@ -69,7 +69,13 @@ function Create({ session }) {
     useEffect(() => {
         fetch(`${API_URL}/api/videos/voices`)
             .then(res => res.json())
-            .then(data => setVoices(data.voices || []))
+            .then(data => {
+                const voices = (data.voices || []).map(v => ({
+                    ...v,
+                    previewUrl: v.previewUrl || `${API_URL}/api/videos/voice-preview/${encodeURIComponent(v.id)}`
+                }));
+                setVoices(voices);
+            })
             .catch(() => { });
     }, []);
 
