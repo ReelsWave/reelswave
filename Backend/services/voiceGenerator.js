@@ -63,7 +63,8 @@ async function callInworldTTS(text, voice) {
             text,
             voiceId:  voice,
             modelId:  'inworld-tts-1.5-max',
-            audioConfig: { audioEncoding: 'MP3', sampleRateHertz: 48000 }
+            audioConfig: { audioEncoding: 'MP3', sampleRateHertz: 48000 },
+            applyTextNormalization: 'on'   // auto-expand $1,500 → "fifteen hundred dollars", dates, etc.
         },
         { headers: { Authorization: inworldAuthHeader(), 'Content-Type': 'application/json' } }
     );
@@ -132,11 +133,12 @@ export async function getVoices() {
 // ─── Inworld TTS (via AIML API) ───────────────────────────────────────────────
 
 async function generateVoiceoverInworld({ text, voiceId, outputDir, jobId }) {
-    const cleanText = text.replace(/\[[^\]]+\]/g, '').replace(/\s+/g, ' ').trim();
+    // text already has Inworld markup preserved ([sigh], [laugh], *emphasis*)
+    // — do NOT strip tags here, they're intentional delivery cues
     const selectedVoice = voiceId || INWORLD_DEFAULT_VOICE;
 
     // 1. Generate speech via Inworld direct API
-    const audioBuffer = await callInworldTTS(cleanText, selectedVoice);
+    const audioBuffer = await callInworldTTS(text, selectedVoice);
     const audioPath = path.join(outputDir, `${jobId}_voiceover.mp3`);
     fs.writeFileSync(audioPath, audioBuffer);
 

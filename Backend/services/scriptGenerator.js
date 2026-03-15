@@ -43,9 +43,18 @@ Formatting Rules:
 - Each segment text must be ${minWordsPerSeg}–${maxWordsPerSeg} words. Use short sentences (3-5 words each) for caption display.
 - You MUST include exactly ${minSegments} segments — no more, no fewer
 - DO NOT use any emojis anywhere in the script
-- Bold the most important, high-impact words using markdown (e.g. **bold**)
-- Use ElevenLabs v3 audio emotion tags where they naturally fit the tone (e.g. [laughs], [sighs], [gasps], [clears throat], [nervous laugh], [exhales]). Use sparingly — 2-4 per script max, only where they genuinely enhance delivery
 - ${customCTA ? `The callToAction field MUST be exactly: "${customCTA}"` : 'End with a strong call-to-action (the Offer)'}
+
+INWORLD TTS DELIVERY INSTRUCTIONS — these directly control how the voice sounds:
+1. EMPHASIS: Wrap the single most impactful word in each sentence with *single asterisks* (e.g. "This one mistake cost me *everything*"). Max 1-2 per segment. Never double asterisks.
+2. VOCALIZATIONS: Insert non-verbal tokens where they genuinely enhance emotion. Supported tokens: [sigh], [laugh], [breathe], [cough], [clear_throat], [yawn]. Use 2-4 total across the whole script.
+   - Use [sigh] for defeat, relief, exhaustion
+   - Use [laugh] for irony, disbelief, genuine humor
+   - Use [breathe] for tension, suspense, dramatic pauses
+   - Niche-specific: scary → [breathe], funny → [laugh], motivational → [sigh] for contrast
+3. PACING: Use ellipsis (...) for dramatic beats and suspense. Use short punchy sentences (3-5 words) for fast delivery. Use longer sentences for slow, measured moments.
+4. NATURAL SPEECH: ${['funny', 'lifestyle', 'funfacts'].includes(niche) ? 'This is a casual niche — use contractions (don\'t, can\'t, I\'m), filler words (I mean, you know, look), and conversational rhythm. Sound like a real person talking.' : 'Use contractions naturally (don\'t, can\'t, I\'m) but keep delivery clear and intentional.'}
+5. TEXT NORMALIZATION: Write all numbers, currencies, and dates in spoken form — "fifteen hundred dollars" not "$1,500", "december fourth" not "12/4". The TTS engine will handle it but spoken form is more reliable.
 
 Return ONLY valid JSON in this exact format:
 {
@@ -95,17 +104,36 @@ CRITICAL RULE FOR IMAGE PROMPTS:
     script.callToAction
   ].join(' ');
 
-  // Strip emojis and markdown for the Text-to-Speech engine so it doesn't mumble/stutter
-  // Also strip newlines, dashes, and ellipses which ElevenLabs interprets as long unnatural pauses
-  const cleanScript = fullScript
+  const provider = (process.env.VOICE_PROVIDER || 'elevenlabs').toLowerCase();
+
+  // Strip emojis always
+  const noEmoji = fullScript
     .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
-    .replace(/\*\*/g, '')
     .replace(/_/g, '')
-    .replace(/[\n\r]+/g, ' ') // Remove newlines
-    .replace(/\.{2,}/g, ', ') // Replace ellipses with a brief pause (comma) rather than a full stop
-    .replace(/[-—]/g, ', ') // Replace dashes with a comma-pause so delivery breathes naturally
+    .replace(/[\n\r]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+
+  let cleanScript;
+  if (provider === 'inworld') {
+    // Inworld supports *emphasis* and [vocalizations] — keep them
+    // Double asterisks would be read aloud — strip those, keep single
+    cleanScript = noEmoji
+      .replace(/\*\*([^*]+)\*\*/g, '$1') // strip **bold** markdown, keep text
+      .replace(/[-—]/g, ',')             // dashes → comma pause
+      .replace(/\s+/g, ' ')
+      .trim();
+  } else {
+    // ElevenLabs / OpenAI — strip all markup and vocalizations
+    cleanScript = noEmoji
+      .replace(/\*\*/g, '')              // strip bold markdown
+      .replace(/\*([^*]+)\*/g, '$1')     // strip *emphasis* markers
+      .replace(/\[[^\]]+\]/g, '')        // strip [laugh], [sigh] etc.
+      .replace(/\.{2,}/g, ',')           // ellipses → comma pause
+      .replace(/[-—]/g, ',')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
 
   return {
     ...script,
