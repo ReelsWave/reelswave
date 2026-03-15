@@ -139,7 +139,13 @@ function Autopilot({ session }) {
         fetchData();
         fetch(`${API_URL}/api/videos/voices`)
             .then(r => r.json())
-            .then(d => setVoices(d.voices || []))
+            .then(d => {
+                const voices = (d.voices || []).map(v => ({
+                    ...v,
+                    previewUrl: v.previewUrl || `${API_URL}/api/videos/voice-preview/${encodeURIComponent(v.id)}`
+                }));
+                setVoices(voices);
+            })
             .catch(() => {});
     }, []);
 
