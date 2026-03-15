@@ -35,18 +35,18 @@ const TONES = [
 ];
 
 const STYLES = [
-    { id: 'vibrant_comic', name: 'Comic', icon: '💥' },
-    { id: 'dark_novel', name: 'Creepy', icon: '🦇' },
-    { id: 'modern_toon', name: 'Cartoon', icon: '📺' },
-    { id: 'pixar_3d', name: 'Disney', icon: '🧸' },
-    { id: 'studio_ghibli', name: 'Ghibli', icon: '🍃' },
-    { id: 'tokyo_anime', name: 'Anime', icon: '🌸' },
-    { id: 'oil_canvas', name: 'Painting', icon: '🎨' },
-    { id: 'grim_fantasy', name: 'Fantasy', icon: '🗡️' },
-    { id: 'cinematic', name: 'Realism', icon: '🎬' },
-    { id: 'cyberpunk', name: 'Neon', icon: '🏙️' },
-    { id: 'toy_bricks', name: 'Lego', icon: '🧱' },
-    { id: 'vintage_photo', name: 'Polaroid', icon: '📸' },
+    { id: 'vibrant_comic',  name: 'Comic',        icon: '💥', bg: 'url(/styles/vibrant_comic.jpg)' },
+    { id: 'dark_novel',     name: 'Creepy Comic',  icon: '🦇', bg: 'url(/styles/dark_novel.jpg)' },
+    { id: 'modern_toon',    name: 'Modern Cartoon',icon: '📺', bg: 'url(/styles/modern_toon.jpg)' },
+    { id: 'pixar_3d',       name: 'Disney',        icon: '🧸', bg: 'url(/styles/pixar_3d.jpg)' },
+    { id: 'studio_ghibli',  name: 'Ghibli',        icon: '🍃', bg: 'url(/styles/studio_ghibli.jpg)' },
+    { id: 'tokyo_anime',    name: 'Anime',          icon: '🌸', bg: 'url(/styles/tokyo_anime.jpg)' },
+    { id: 'oil_canvas',     name: 'Painting',       icon: '🎨', bg: 'url(/styles/oil_canvas.jpg)' },
+    { id: 'grim_fantasy',   name: 'Dark Fantasy',   icon: '🗡️', bg: 'url(/styles/grim_fantasy.jpg)' },
+    { id: 'toy_bricks',     name: 'Lego',           icon: '🧱', bg: 'url(/styles/toy_bricks.jpg)' },
+    { id: 'vintage_photo',  name: 'Polaroid',       icon: '📸', bg: 'url(/styles/vintage_photo.svg)' },
+    { id: 'cinematic',      name: 'Realism',        icon: '🎬', bg: 'url(/styles/cinematic.jpg)' },
+    { id: 'ethereal_dream', name: 'Fantastic',      icon: '✨', bg: 'url(/styles/ethereal_dream.jpg)' },
 ];
 
 const DURATIONS = [
@@ -654,17 +654,28 @@ function Autopilot({ session }) {
                                         <Flame size={13} />
                                         Visual Style
                                     </label>
-                                    <div className="ap-style-grid">
-                                        {STYLES.map(s => (
-                                            <button
-                                                key={s.id}
-                                                className={`ap-style-btn ${(isDedicated ? activeValues.style : style) === s.id ? 'selected' : ''}`}
-                                                onClick={() => isDedicated ? setActiveValue('style', s.id) : setStyle(s.id)}
-                                            >
-                                                <span>{s.icon}</span>
-                                                <span>{s.name}</span>
-                                            </button>
-                                        ))}
+                                    <div className="ap-style-cards-grid">
+                                        {STYLES.map(s => {
+                                            const isSelected = (isDedicated ? activeValues.style : style) === s.id;
+                                            return (
+                                                <div
+                                                    key={s.id}
+                                                    className="ap-style-card-wrap"
+                                                    onClick={() => isDedicated ? setActiveValue('style', s.id) : setStyle(s.id)}
+                                                >
+                                                    <div
+                                                        className={`style-card ${isSelected ? 'style-selected' : ''}`}
+                                                        style={{ background: s.bg }}
+                                                    >
+                                                        {isSelected && <div className="style-check">✓</div>}
+                                                    </div>
+                                                    <div className="style-label">
+                                                        <span className="style-icon">{s.icon}</span>
+                                                        <span className="style-name">{s.name}</span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>
