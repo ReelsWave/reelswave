@@ -940,31 +940,39 @@
     box-shadow: 0 0 14px color-mix(in srgb, var(--nc, var(--accent)) 18%, transparent);
 }
 
-/* ── Style Cards Grid (matches Create page) ── */
+/* ── Style Cards Grid — 2 columns × 6 rows ── */
 .ap-style-cards-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
     padding: 4px 0 8px;
 }
 
 .ap-style-card-wrap {
-    flex: 0 0 auto;
     display: flex;
     flex-direction: column;
     align-items: center;
     cursor: pointer;
     gap: 0;
+    width: 100%;
 }
 
 .ap-style-card-wrap .style-card {
-    width: 110px;
-    height: 175px;
+    width: 100%;
+    height: 100px;
 }
 
 .ap-style-card-wrap .style-label {
-    width: 110px;
-    padding: 6px 4px 2px;
+    width: 100%;
+    padding: 5px 4px 2px;
+}
+
+.ap-style-card-wrap .style-name {
+    font-size: 0.78rem;
+}
+
+.ap-style-card-wrap .style-icon {
+    font-size: 0.95rem;
 }
 
 /* keep old classes around in case anything else refs them */
