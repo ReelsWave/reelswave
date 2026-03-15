@@ -6,7 +6,8 @@ import OpenAI from 'openai';
 dotenv.config();
 
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1';
-const INWORLD_API_URL = 'https://api.inworld.ai/tts/v1';
+// Inworld TTS is accessed via AIML API — not Inworld's own endpoint
+const AIMLAPI_TTS_URL = 'https://api.aimlapi.com/v1/tts';
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // ─── ElevenLabs ──────────────────────────────────────────────────────────────
@@ -47,10 +48,24 @@ const INWORLD_VOICES = [
     { id: 'Theodore', name: 'Theodore', labels: { gender: 'Male',   age: 'Old' } },
 ];
 
-function inworldAuthHeader() {
-    // Inworld expects Basic auth with the API key
-    const encoded = Buffer.from(process.env.INWORLD_API_KEY || '').toString('base64');
-    return `Basic ${encoded}`;
+function aimlAuthHeader() {
+    return `Bearer ${process.env.INWORLD_API_KEY || ''}`;
+}
+
+/**
+ * Call AIML API TTS and return an MP3 Buffer.
+ * Response is { audio: { url: "https://cdn.aimlapi.com/..." } } — we fetch the CDN URL.
+ */
+async function callAimlTTS(text, voice) {
+    const response = await axios.post(
+        AIMLAPI_TTS_URL,
+        { model: 'inworld/tts-1-5-max', text, voice, format: 'mp3' },
+        { headers: { Authorization: aimlAuthHeader(), 'Content-Type': 'application/json' } }
+    );
+    const audioUrl = response.data?.audio?.url;
+    if (!audioUrl) throw new Error(`AIML TTS: no audio URL in response — ${JSON.stringify(response.data)}`);
+    const mp3 = await axios.get(audioUrl, { responseType: 'arraybuffer' });
+    return Buffer.from(mp3.data);
 }
 
 // ─── OpenAI voice mapping ─────────────────────────────────────────────────────
@@ -110,46 +125,29 @@ export async function getVoices() {
     }));
 }
 
-// ─── Inworld TTS ──────────────────────────────────────────────────────────────
+// ─── Inworld TTS (via AIML API) ───────────────────────────────────────────────
 
 async function generateVoiceoverInworld({ text, voiceId, outputDir, jobId }) {
     const cleanText = text.replace(/\[[^\]]+\]/g, '').replace(/\s+/g, ' ').trim();
     const selectedVoice = voiceId || INWORLD_DEFAULT_VOICE;
-    const temperature = 1.1;
 
-    const response = await axios.post(
-        `${INWORLD_API_URL}/voice`,
-        {
-            text: cleanText,
-            voiceId: selectedVoice,
-            modelId: 'inworld-tts-1.5-max',
-            audioConfig: {
-                audioEncoding: 'MP3',
-                sampleRateHertz: 48000,
-                speakingRate: 1.0
-            },
-            temperature,
-            timestampType: 'WORD'
-        },
-        {
-            headers: {
-                Authorization: inworldAuthHeader(),
-                'Content-Type': 'application/json'
-            }
-        }
-    );
-
-    // audioContent is base64-encoded MP3
-    const audioBuffer = Buffer.from(response.data.audioContent, 'base64');
+    // 1. Generate speech via AIML API → returns CDN URL → download MP3
+    const audioBuffer = await callAimlTTS(cleanText, selectedVoice);
     const audioPath = path.join(outputDir, `${jobId}_voiceover.mp3`);
     fs.writeFileSync(audioPath, audioBuffer);
 
-    // Parse word-level timestamps from Inworld response
-    const wordAlignment = response.data?.timestampInfo?.wordAlignment || [];
-    const timestamps = wordAlignment.map(w => ({
-        word: w.words,
-        start: w.wordStartTimeSeconds,
-        end: w.wordEndTimeSeconds
+    // 2. Get word-level timestamps via Whisper (AIML API doesn't return them)
+    const transcription = await openai.audio.transcriptions.create({
+        file: fs.createReadStream(audioPath),
+        model: 'whisper-1',
+        response_format: 'verbose_json',
+        timestamp_granularities: ['word']
+    });
+
+    const timestamps = (transcription.words || []).map(w => ({
+        word: w.word,
+        start: w.start,
+        end: w.end
     }));
 
     return { audioPath, size: audioBuffer.byteLength, timestamps };
@@ -253,19 +251,8 @@ async function generateVoiceoverOpenAI({ text, outputDir, jobId, niche, tone }) 
  * Returns a Buffer of MP3 audio.
  */
 export async function generateInworldPreview(voiceId) {
-    const sampleText = `Hey! I'm ${voiceId}, ready to bring your content to life.`;
-    const response = await axios.post(
-        `${INWORLD_API_URL}/voice`,
-        {
-            text: sampleText,
-            voiceId,
-            modelId: 'inworld-tts-1.5-max',
-            audioConfig: { audioEncoding: 'MP3', sampleRateHertz: 48000 },
-            temperature: 1.1
-        },
-        { headers: { Authorization: inworldAuthHeader(), 'Content-Type': 'application/json' } }
-    );
-    return Buffer.from(response.data.audioContent, 'base64');
+    const sampleText = `Hey! I'm ${voiceId}. I'm ready to bring your content to life.`;
+    return callAimlTTS(sampleText, voiceId);
 }
 
 // ─── Main entry point ─────────────────────────────────────────────────────────
