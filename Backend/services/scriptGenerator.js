@@ -111,59 +111,77 @@ export async function generateScript({ topic, niche, tone = 'energetic', duratio
   const customCTA = ctaMatch ? ctaMatch[1].trim() : null;
   const cleanTopic = topic.replace(/mention\s+at\s+the\s+end\s*:.+/i, '').trim();
 
-  const prompt = `You are a viral short-form video scriptwriter. Create a ${duration}-second script for a faceless video.
+  const prompt = `You are a world-class viral short-form video scriptwriter who has studied thousands of TikTok videos with over 10M views. You understand exactly how the modern brain processes short-form content and what makes someone STOP scrolling and watch to the end. Create a ${duration}-second script for a faceless video.
 
-CONTENT INSTRUCTIONS (follow these above all else):
 TOPIC: ${cleanTopic}
 NICHE: ${niche}
 TONE: ${tone}
 VISUAL_STYLE_PROMPT: ${style}
 ${customCTA ? `CALL TO ACTION (use this EXACT text verbatim as the callToAction field): "${customCTA}"` : ''}
-${scenarioHint ? `\nMANDATORY CREATIVE CONSTRAINT — You MUST base this video on the exact scenario below. Do NOT deviate, do NOT substitute a generic or similar situation. This constraint is for your creative use only — do not read it aloud or reference it in the script:\n${scenarioHint}` : ''}
+${scenarioHint ? `\nMANDATORY CREATIVE CONSTRAINT — You MUST base this video on EXACTLY this scenario. Do NOT deviate or substitute:\n${scenarioHint}` : ''}
 
-Formatting Rules:
-- Follow a 'hook, story, offer' structure
-- Start with a powerful HOOK that stops the scroll. CRITICAL: The FIRST 3 WORDS of the hook must work as a standalone thumbnail text — punchy, curiosity-driving, and impactful on their own (e.g. "YOU WASTED EVERYTHING", "NOBODY TELLS YOU", "THIS BROKE ME"). These 3 words will be displayed as captions on the thumbnail frame.
-- WORD COUNT IS CRITICAL: The total word count of (hook + all segment texts + callToAction) MUST be exactly ${targetWords} words. This determines video length — going over makes the video too long.
-- Each segment text must be ${minWordsPerSeg}–${maxWordsPerSeg} words. Use short sentences (3-5 words each) for caption display.
-- You MUST include exactly ${minSegments} segments — no more, no fewer
-- DO NOT use any emojis anywhere in the script
-- ${customCTA ? `The callToAction field MUST be exactly: "${customCTA}"` : 'End with a strong call-to-action (the Offer)'}
+━━━ VIRAL RETENTION STRUCTURE ━━━
 
-INWORLD TTS DELIVERY INSTRUCTIONS — these directly control how the voice sounds:
-1. EMPHASIS: Wrap the single most impactful word in each sentence with *single asterisks* (e.g. "This one mistake cost me *everything*"). Max 1-2 per segment. Never double asterisks.
-2. VOCALIZATIONS: Insert non-verbal tokens where they genuinely enhance emotion. Supported tokens: [sigh], [laugh], [breathe], [cough], [clear_throat], [yawn]. Use 2-4 total across the whole script.
-   - Use [sigh] for defeat, relief, exhaustion
-   - Use [laugh] for irony, disbelief, genuine humor
-   - Use [breathe] for tension, suspense, dramatic pauses
-   - Niche-specific: scary → [breathe], funny → [laugh], motivational → [sigh] for contrast
-3. PACING: Use ellipsis (...) for dramatic beats and suspense. Use short punchy sentences (3-5 words) for fast delivery. Use longer sentences for slow, measured moments.
-4. NATURAL SPEECH: ${['funny', 'lifestyle', 'funfacts'].includes(niche) ? 'This is a casual niche — use contractions (don\'t, can\'t, I\'m), filler words (I mean, you know, look), and conversational rhythm. Sound like a real person talking.' : 'Use contractions naturally (don\'t, can\'t, I\'m) but keep delivery clear and intentional.'}
-5. TEXT NORMALIZATION: Write all numbers, currencies, and dates in spoken form — "fifteen hundred dollars" not "$1,500", "december fourth" not "12/4". The TTS engine will handle it but spoken form is more reliable.
+The modern viewer decides in 2 seconds whether to keep watching. Every sentence must EARN the next one. Here is the exact structure you must follow:
 
-Return ONLY valid JSON in this exact format:
+1. HOOK (first line): Open a loop the brain CANNOT close. Do NOT reveal the twist. Tease it. Make them NEED to know what happens.
+   - The FIRST 3 WORDS must work as standalone thumbnail text — ALL CAPS, punchy, and curiosity-driving (e.g. "NOBODY SAW THIS", "I LOST EVERYTHING", "THIS DESTROYED ME")
+   - Hook must create an immediate open loop: "I did X... and everything fell apart." NOT "Today I want to tell you about X."
+
+2. EARLY SPIKE (~segment 2-3): Drop an unexpected detail that makes the situation weirder or higher stakes than the viewer expected. This is your mid-hook — it re-commits viewers who are about to swipe.
+   - Use phrases like: "But here's the part nobody talks about.", "And then it got *worse*.", "I had no idea what I just walked into."
+
+3. ESCALATION (middle segments): Each segment must raise the stakes or add a new piece of information that reframes everything before it. Never flatline. Every line should make the viewer think "wait, what happens next?"
+
+4. THE TWIST (~70% through): A genuine "wait WHAT?" reversal. Not a gentle surprise — a hard pivot that recontextualizes the whole story. The viewer should feel slightly shocked.
+
+5. LANDING (final segment before CTA): Short. Punchy. Emotional gut-punch or ironic conclusion. 1-2 sentences max.
+
+━━━ SENTENCE-LEVEL RULES ━━━
+
+- SENTENCE LENGTH: 4-8 words per sentence. Never more than 10. Short sentences = fast brain = addictive pacing.
+- NO FILLER: Cut "so basically", "and then", "at this point". Every word must carry weight.
+- CONVERSATIONAL: Write like you're texting a friend about something insane that just happened. NOT like a narrator. NOT formal.
+- INCOMPLETE THOUGHTS: Occasionally end a sentence without fully resolving it — let the brain fill the gap. "And that's when I saw it..."
+- CONTRACTIONS: Always. "Don't" not "do not". "I'm" not "I am". "It's" not "it is".
+${['funny', 'lifestyle', 'funfacts', 'comedy'].includes(niche) ? '- CASUAL FILLERS: Use "I mean", "literally", "okay so", "no but wait" sparingly for natural rhythm.' : ''}
+
+━━━ WORD COUNT — NON-NEGOTIABLE ━━━
+Total word count of (hook + ALL segments + callToAction) MUST equal EXACTLY ${targetWords} words.
+Each segment: ${minWordsPerSeg}–${maxWordsPerSeg} words. Write EXACTLY ${minSegments} segments.
+
+━━━ INWORLD TTS DELIVERY ━━━
+1. EMPHASIS: Wrap the single most critical word per sentence in *single asterisks*. Max 1-2 per segment. Never double asterisks.
+2. VOCALIZATIONS: Use 2-4 total across the script:
+   - [sigh] → defeat, exhaustion, irony
+   - [laugh] → disbelief, humor, irony
+   - [breathe] → tension, suspense, dread
+   Niche guidance: scary → [breathe], funny → [laugh], motivational → [sigh]
+3. PACING: Use ... for dramatic pauses and suspense beats.
+4. SPOKEN NUMBERS: Write "fifteen hundred" not "$1,500". "December fourth" not "12/4".
+
+━━━ OUTPUT FORMAT ━━━
+Return ONLY valid JSON:
 {
-  "title": "Video title for the creator's reference",
-  "hook": "The attention-grabbing opening line (1-2 sentences)",
-  "characterDescription": "A highly detailed, locked-in description of the main character's physical appearance, clothing, and defining traits. This MUST be identical across all frames to ensure consistency (e.g. 'A 16-year-old Dominican boy with short curly black hair, wearing a white basketball jersey with red trim, missing his entire left arm from the shoulder down').",
+  "title": "Short reference title for the creator",
+  "hook": "The scroll-stopping opening line. FIRST 3 WORDS IN ALL CAPS.",
+  "characterDescription": "Hyper-specific locked physical description of the main character — same across ALL frames. Include age, ethnicity, hair, clothing, one distinctive feature. Example: 'A 24-year-old Filipino woman with straight black hair in a ponytail, wearing an oversized grey hoodie and gold hoop earrings, with a small scar above her left eyebrow'.",
   "segments": [
     {
-      "text": "Segment narration text (DO NOT INLUDE THE HOOK OR CALL TO ACTION HERE. This is ONLY the middle story body.)",
-      "imagePrompt": "Detailed visual description. YOU MUST PREPEND THE EXACT characterDescription TO THIS FIELD so the AI knows exactly who to draw in this scene.",
-      "duration": estimated_seconds_for_this_segment
+      "text": "Segment narration. Middle story body only — NO hook, NO CTA here.",
+      "imagePrompt": "PREPEND THE EXACT characterDescription. Then describe the scene in vivid cinematic detail.",
+      "duration": estimated_seconds
     }
   ],
-  "callToAction": "Closing CTA text",
-  "hashtags": ["relevant", "hashtags", "for", "posting"]
+  "callToAction": "${customCTA || 'Closing CTA'}",
+  "hashtags": ["relevant", "hashtags"]
 }
 
-Make the segments flow naturally. Each segment must be ${minWordsPerSeg}–${maxWordsPerSeg} words. Write exactly ${minSegments} segments. Total word count must be ${targetWords} words.
-The imagePrompt MUST describe highly detailed, visually compelling scenes for an AI Image Generator. 
-CRITICAL RULE FOR IMAGE PROMPTS: 
-1. CONSISTENCY IS KING. You must prepend the exact same \`characterDescription\` to every single \`imagePrompt\` if the character appears in that scene. Otherwise, the AI will draw a different person every time.
-2. YOU MUST APPEND THE EXACT \`VISUAL_STYLE_PROMPT\` STRING ("${style}") TO THE VERY END OF EVERY SINGLE \`imagePrompt\` IN THE JSON. This forces the image AI to draw the entire video in the user's requested aesthetic.
-3. If the story involves a character with specific physical traits or disabilities (e.g., "one-legged", "missing an arm", "scars"), you MUST be extremely explicit and aggressive in the imagePrompt to force the AI generator to comply. Do not just say "a one legged boy", say "A boy with ONLY ONE LEG AND ONE EMPTY PANT LEG, missing his left leg completely, hopping on crutches, single leg visible" to prevent the image AI from defaulting to two legs.
-4. The image MUST NOT contain any large title text, subtitles, memes, or overlaid text baked into the image. It should look like a clean cinematic photograph without huge text blocks, though natural environmental text (like street signs) is fine.`;
+━━━ IMAGE PROMPT RULES ━━━
+1. PREPEND the exact characterDescription to EVERY imagePrompt — no exceptions. Same character = same description.
+2. APPEND the exact VISUAL_STYLE_PROMPT string ("${style}") to the END of every imagePrompt.
+3. For characters with physical traits (disabilities, scars, missing limbs): be aggressive and hyper-explicit. "A boy with ONLY ONE LEG, left leg missing entirely, empty left pant leg pinned up, using crutches" — not just "a one-legged boy".
+4. NO text, titles, subtitles, or meme overlays baked into the image. Clean cinematic frame only.`;
 
   const response = await openai.chat.completions.create({
     model: 'gpt-5.4',
