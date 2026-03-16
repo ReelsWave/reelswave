@@ -100,11 +100,10 @@ export function buildCreativeConstraint() {
  */
 export async function generateScript({ topic, niche, tone = 'energetic', duration = 60, style = '', scenarioHint = '' }) {
   const targetWords = Math.round((duration / 60) * 160);
-  const minSegments = Math.ceil(duration / 4); // ~4s per image → more visual variety
-  // Words per segment: subtract ~15 each for hook and CTA, split the rest evenly
+  const minSegments = Math.ceil(duration / 6); // ~6s per image — enough words per segment for coherent narrative
   const wordsPerSegment = Math.round((targetWords - 30) / minSegments);
-  const minWordsPerSeg = Math.max(5, wordsPerSegment - 2);
-  const maxWordsPerSeg = wordsPerSegment + 3;
+  const minWordsPerSeg = Math.max(18, wordsPerSegment - 3);
+  const maxWordsPerSeg = wordsPerSegment + 5;
 
   // Extract any "Mention AT THE END:" instruction from the topic
   const ctaMatch = topic.match(/mention\s+at\s+the\s+end\s*:\s*(.+)/i);
@@ -119,6 +118,9 @@ TONE: ${tone}
 VISUAL_STYLE_PROMPT: ${style}
 ${customCTA ? `CALL TO ACTION (use this EXACT text verbatim as the callToAction field): "${customCTA}"` : ''}
 ${scenarioHint ? `\nMANDATORY CREATIVE CONSTRAINT — You MUST base this video on EXACTLY this scenario. Do NOT deviate or substitute:\n${scenarioHint}` : ''}
+
+━━━ RULE #0 — THE MOST IMPORTANT RULE ━━━
+Every single segment MUST be part of ONE continuous story about ONE character in ONE situation. Do NOT switch characters, locations, or storylines between segments. The hook, all segments, and CTA are chapters of the SAME story — not separate ideas. If segment 1 is about Kevin at work, EVERY segment is about Kevin at work.
 
 ━━━ VIRAL RETENTION STRUCTURE ━━━
 
