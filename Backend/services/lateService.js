@@ -70,6 +70,7 @@ export async function uploadVideo({ profileIds, videoUrl, text }) {
             body: {
                 profileIds,
                 content: text,
+                publishNow: true,
                 mediaItems: [
                     {
                         type: 'video',
