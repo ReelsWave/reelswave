@@ -257,6 +257,14 @@ Return ONLY valid JSON:
 
   let scriptText = response.choices[0].message.content;
 
+  // Hermes/some models prepend text like "Here is the JSON:" before the actual JSON
+  // Strip everything before the first { and after the last }
+  const jsonStart = scriptText.indexOf('{');
+  const jsonEnd = scriptText.lastIndexOf('}');
+  if (jsonStart !== -1 && jsonEnd !== -1) {
+    scriptText = scriptText.slice(jsonStart, jsonEnd + 1);
+  }
+
   let script;
   try {
     script = JSON.parse(scriptText);
