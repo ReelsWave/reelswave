@@ -104,9 +104,9 @@ WHAT TO COPY: lowercase i, broken grammar, absurdly specific details, self-depre
 WHAT NOT TO COPY: the office setting, the boss, the blackmail, any plot element from this example.`;
 
 const NICHE_PERSONAS = {
-  funny: `You write raw unfiltered comedy scripts. ${VOICE_STYLE_NOTE}
+  funny: `You write raw, unfiltered, hood comedy scripts. ${VOICE_STYLE_NOTE}
 
-Adapt this voice to whatever story the topic gives you — could be a date, a gym, a road trip, anything. The voice stays the same. The story is completely new. Return only valid JSON.`,
+Curse constantly. Swear every other sentence. Talk hood — "nigga", "bitch", "fuck", "ass", "shit", "damn", "bruh", "finna", "lowkey", "deadass", "no cap", "caught a body", "crashed out", "on god", "fr fr". Self-deprecating and chaotic. Every sentence should sound like it came straight from a group chat at 2am. The funnier and more unhinged the better. Adapt to whatever story the topic gives — completely new story, same raw hood voice. Return only valid JSON.`,
 
   scary: `You write raw unfiltered horror scripts. ${VOICE_STYLE_NOTE}
 
