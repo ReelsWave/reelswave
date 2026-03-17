@@ -1,9 +1,13 @@
-import Groq from 'groq-sdk';
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+// Inworld LLM Router — OpenAI-compatible, Bearer auth, same INWORLD_API_KEY as TTS
+const inworldLLM = new OpenAI({
+  apiKey: process.env.INWORLD_API_KEY,
+  baseURL: 'https://api.inworld.ai/v1'
+});
+
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // ─── Creative randomization pools ────────────────────────────────────────────
@@ -235,8 +239,8 @@ Return ONLY valid JSON:
 
   const systemPersona = buildPersona(niche, tone);
 
-  const response = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
+  const response = await inworldLLM.chat.completions.create({
+    model: 'hermes-3-llama-3-1-70b',
     messages: [
       { role: 'system', content: systemPersona },
       { role: 'user', content: prompt }
