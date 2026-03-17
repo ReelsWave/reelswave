@@ -93,15 +93,16 @@ function pick(arr) {
 
 const EXAMPLE_SCRIPT = `
 EXAMPLE OF THE EXACT VOICE AND ENERGY YOU MUST WRITE IN:
-"Bro, I switched lanes 'cause the bitch in front of me was driving slow as hell. Had to get the fuck out of there before she crash and I end up on the news with my weave in a plastic bag. Chill, I ain't hit nobody, yet. Hood rule number one, don't threaten, just do it. So next time some dumb fuck on the road try to play lane games with me, I'm swerving into they ass doing sixty. Nigga, you bought me at Walmart? Bitch, I'm priceless. I'll just sit in the back seat and whisper to your kids how daddy really got that scratch on his neck. You stuck with me now, deal with it."
+"Everybody hated my bitchass cuz they thought i was blackmailing the boss wife. i tried to talk to them nigga but they dont listen. my dumbass had no idea what i just walked into. then my sprawny looking-ahh boss crashed out, and thats when i realized i done fucked up."
 
 WHAT MAKES THIS WORK:
-- Absurdly specific details: "end up on the news with my weave in a plastic bag" — not just "I was scared"
-- Sentence that ends too early for comedic effect: "I ain't hit nobody, yet." — the "yet" IS the joke
-- Escalates to somewhere completely unexpected: starts with lane switching, ends with threatening to tell someone's kids about their neck scratch
-- Broken grammar that sounds real: "before she crash" not "before she crashed", "they ass" not "their ass"
-- Never explains the joke — just delivers it and moves on
-- Punchline buried mid-sentence in a run-on, not telegraphed
+- Hyper-specific WHY: not "everybody hated me" but "everybody hated my bitchass CUZ they thought i was blackmailing the boss wife" — the reason IS the story
+- Self-deprecating slang: "my dumbass", "my bitchass" — self-aware and funny
+- Specific insults: "my sprawny looking-ahh boss" — not just "my boss"
+- Slang that sounds real: "crashed out", "done fucked up", "cuz", "ahh"
+- Lowercase i, no capitals mid-sentence — sounds typed not written
+- Broken grammar that sounds authentic: "they dont listen" not "they don't listen"
+- Never hedges or softens — says exactly what happened with zero filter
 `;
 
 const NICHE_PERSONAS = {
@@ -218,9 +219,11 @@ The modern viewer decides in 2 seconds whether to keep watching. Every sentence 
 - CONTRACTIONS: Always. "Don't" not "do not". "I'm" not "I am". "It's" not "it is".
 ${['funny', 'lifestyle', 'funfacts', 'comedy'].includes(niche) ? '- CASUAL FILLERS: Use "I mean", "literally", "okay so", "no but wait" sparingly for natural rhythm.' : ''}
 
-━━━ WORD COUNT — NON-NEGOTIABLE ━━━
-Total word count of (hook + ALL segments + callToAction) MUST equal EXACTLY ${targetWords} words.
-Each segment: ${minWordsPerSeg}–${maxWordsPerSeg} words. Write EXACTLY ${minSegments} segments.
+━━━ WORD COUNT — THIS IS THE #1 RULE, DO NOT SKIP IT ━━━
+The video is ${duration} seconds long. At 2.5 words per second that means you need EXACTLY ${targetWords} words total.
+Count: hook + every segment text + callToAction = ${targetWords} words. Not ${targetWords - 20}. Not ${targetWords + 10}. EXACTLY ${targetWords}.
+Each segment must be ${minWordsPerSeg}–${maxWordsPerSeg} words. Write EXACTLY ${minSegments} segments.
+If your total word count is wrong, the video will be the wrong length. Count every word before you return the JSON.
 
 ━━━ INWORLD TTS DELIVERY ━━━
 1. EMPHASIS: Wrap the single most critical word per sentence in *single asterisks*. Max 1-2 per segment. Never double asterisks.
