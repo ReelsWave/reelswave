@@ -169,10 +169,11 @@ export function buildCreativeConstraint() {
  */
 export async function generateScript({ topic, niche, tone = 'energetic', duration = 60, style = '', scenarioHint = '' }) {
   const targetWords = Math.round((duration / 60) * 160);
-  const minSegments = Math.ceil(duration / 6); // ~6s per image — enough words per segment for coherent narrative
+  // 45s → 16 images, 75s → 22 images (linear interpolation, ~3s per image)
+  const minSegments = Math.round(16 + (duration - 45) * 0.2);
   const wordsPerSegment = Math.round((targetWords - 30) / minSegments);
-  const minWordsPerSeg = Math.max(8, wordsPerSegment - 3);
-  const maxWordsPerSeg = Math.max(minWordsPerSeg + 2, wordsPerSegment + 5);
+  const minWordsPerSeg = Math.max(5, wordsPerSegment - 2);
+  const maxWordsPerSeg = Math.max(minWordsPerSeg + 3, wordsPerSegment + 5);
 
   // Extract any "Mention AT THE END:" instruction from the topic
   const ctaMatch = topic.match(/mention\s+at\s+the\s+end\s*:\s*(.+)/i);
