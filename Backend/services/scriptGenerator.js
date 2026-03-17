@@ -181,49 +181,35 @@ export async function generateScript({ topic, niche, tone = 'energetic', duratio
   const customCTA = ctaMatch ? ctaMatch[1].trim() : null;
   const cleanTopic = topic.replace(/mention\s+at\s+the\s+end\s*:.+/i, '').trim();
 
-  const prompt = `You are a world-class viral short-form video scriptwriter who has studied thousands of TikTok videos with over 10M views. You understand exactly how the modern brain processes short-form content and what makes someone STOP scrolling and watch to the end. Create a ${duration}-second script for a faceless video.
+  const prompt = `Create a ${duration}-second faceless video script.
 
 TOPIC: ${cleanTopic}
 NICHE: ${niche}
 TONE: ${tone}
 VISUAL_STYLE_PROMPT: ${style}
-${customCTA ? `CALL TO ACTION (use this EXACT text verbatim as the callToAction field): "${customCTA}"` : ''}
-${scenarioHint ? `\nMANDATORY CREATIVE CONSTRAINT — You MUST base this video on EXACTLY this scenario. Do NOT deviate or substitute:\n${scenarioHint}` : ''}
+${customCTA ? `CALL TO ACTION — use this EXACT text as the callToAction field: "${customCTA}"` : ''}
+${scenarioHint ? `\nSCENARIO — base the video on EXACTLY this, do not deviate:\n${scenarioHint}` : ''}
 
-━━━ RULE #0 — THE MOST IMPORTANT RULE ━━━
-Every single segment MUST be part of ONE continuous story about ONE character in ONE situation. Do NOT switch characters, locations, or storylines between segments. The hook, all segments, and CTA are chapters of the SAME story — not separate ideas. If segment 1 is about Kevin at work, EVERY segment is about Kevin at work.
+━━━ WORD COUNT — READ THIS FIRST ━━━
+This video is ${duration} seconds. At 2.5 words/sec you need EXACTLY ${targetWords} words.
+hook words + all segment words + callToAction words = ${targetWords}. Count them. If you're short, keep writing until you hit ${targetWords}.
+Each of the ${minSegments} segments must be ${minWordsPerSeg}–${maxWordsPerSeg} words.
+The example in your system instructions is SHORT ON PURPOSE to show voice only — your actual script must be ${targetWords} words.
 
-━━━ VIRAL RETENTION STRUCTURE ━━━
+━━━ STORY RULES ━━━
+- ONE story, ONE character, ONE situation from hook to CTA. Never switch.
+- Hook: tease the chaos without revealing the twist. FIRST 3 WORDS in ALL CAPS.
+- Middle segments: each one raises the stakes. New info every segment. Never repeat or flatline.
+- Around segment ${Math.ceil(minSegments * 0.7)}: hard unexpected twist that reframes everything.
+- Final segment before CTA: short gut-punch conclusion.
+- BANNED PHRASES — never write these: "here's the part nobody talks about", "and then it got worse", "I had no idea what I just walked into", "here's where it gets interesting", "but wait". These are clichés. Say the THING, don't announce that you're about to say it.
 
-The modern viewer decides in 2 seconds whether to keep watching. Every sentence must EARN the next one. Here is the exact structure you must follow:
-
-1. HOOK (first line): Open a loop the brain CANNOT close. Do NOT reveal the twist. Tease it. Make them NEED to know what happens.
-   - The FIRST 3 WORDS must work as standalone thumbnail text — ALL CAPS, punchy, and curiosity-driving (e.g. "NOBODY SAW THIS", "I LOST EVERYTHING", "THIS DESTROYED ME")
-   - Hook must create an immediate open loop: "I did X... and everything fell apart." NOT "Today I want to tell you about X."
-
-2. EARLY SPIKE (~segment 2-3): Drop an unexpected detail that makes the situation weirder or higher stakes than the viewer expected. This is your mid-hook — it re-commits viewers who are about to swipe.
-   - Use phrases like: "But here's the part nobody talks about.", "And then it got *worse*.", "I had no idea what I just walked into."
-
-3. ESCALATION (middle segments): Each segment must raise the stakes or add a new piece of information that reframes everything before it. Never flatline. Every line should make the viewer think "wait, what happens next?"
-
-4. THE TWIST (~70% through): A genuine "wait WHAT?" reversal. Not a gentle surprise — a hard pivot that recontextualizes the whole story. The viewer should feel slightly shocked.
-
-5. LANDING (final segment before CTA): Short. Punchy. Emotional gut-punch or ironic conclusion. 1-2 sentences max.
-
-━━━ SENTENCE-LEVEL RULES ━━━
-
-- SENTENCE LENGTH: 4-8 words per sentence. Never more than 10. Short sentences = fast brain = addictive pacing.
-- NO FILLER: Cut "so basically", "and then", "at this point". Every word must carry weight.
-- CONVERSATIONAL: Write like you're texting a friend about something insane that just happened. NOT like a narrator. NOT formal.
-- INCOMPLETE THOUGHTS: Occasionally end a sentence without fully resolving it — let the brain fill the gap. "And that's when I saw it..."
-- CONTRACTIONS: Always. "Don't" not "do not". "I'm" not "I am". "It's" not "it is".
-${['funny', 'lifestyle', 'funfacts', 'comedy'].includes(niche) ? '- CASUAL FILLERS: Use "I mean", "literally", "okay so", "no but wait" sparingly for natural rhythm.' : ''}
-
-━━━ WORD COUNT — THIS IS THE #1 RULE, DO NOT SKIP IT ━━━
-The video is ${duration} seconds long. At 2.5 words per second that means you need EXACTLY ${targetWords} words total.
-Count: hook + every segment text + callToAction = ${targetWords} words. Not ${targetWords - 20}. Not ${targetWords + 10}. EXACTLY ${targetWords}.
-Each segment must be ${minWordsPerSeg}–${maxWordsPerSeg} words. Write EXACTLY ${minSegments} segments.
-If your total word count is wrong, the video will be the wrong length. Count every word before you return the JSON.
+━━━ VOICE RULES ━━━
+- Lowercase i is fine. Contractions always. Broken grammar when it sounds real.
+- Specific details over vague ones. "my sprawny looking-ahh boss" not "my boss".
+- Self-deprecating slang: "my dumbass", "my bitchass" when it fits.
+- No narration voice. No "today we're going to talk about". You're living through it.
+- NEVER use filler phrases. Say the specific insane thing that happened.
 
 ━━━ INWORLD TTS DELIVERY ━━━
 1. EMPHASIS: Wrap the single most critical word per sentence in *single asterisks*. Max 1-2 per segment. Never double asterisks.
