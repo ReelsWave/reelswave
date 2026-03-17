@@ -139,8 +139,8 @@ export async function generateScript({ topic, niche, tone = 'energetic', duratio
   const targetWords = Math.round((duration / 60) * 160);
   const minSegments = Math.ceil(duration / 6); // ~6s per image — enough words per segment for coherent narrative
   const wordsPerSegment = Math.round((targetWords - 30) / minSegments);
-  const minWordsPerSeg = Math.max(18, wordsPerSegment - 3);
-  const maxWordsPerSeg = wordsPerSegment + 5;
+  const minWordsPerSeg = Math.max(8, wordsPerSegment - 3);
+  const maxWordsPerSeg = Math.max(minWordsPerSeg + 2, wordsPerSegment + 5);
 
   // Extract any "Mention AT THE END:" instruction from the topic
   const ctaMatch = topic.match(/mention\s+at\s+the\s+end\s*:\s*(.+)/i);
