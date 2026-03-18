@@ -223,8 +223,9 @@ IMPORTANT: Do NOT read these instructions aloud. They are for your internal crea
 
         // Step 7: Upload to Socials via Late.dev
         console.log(`[Auto Growth ${userId}] Posting to Socials...`);
-        // Get connected profiles for this user using their specific Late.dev profile ID
+        console.log(`[Auto Growth ${userId}] Using Late.dev profile ID: ${user.late_dev_profile_id}`);
         const connectedProfiles = await getConnectedProfiles(user.late_dev_profile_id);
+        console.log(`[Auto Growth ${userId}] Connected accounts:`, connectedProfiles.map(p => ({ id: p.id, platform: p.platform, name: p.name })));
 
         if (connectedProfiles.length > 0) {
             // Deduplicate — keep only the first account per platform (1 TikTok, 1 IG, 1 YT max)
