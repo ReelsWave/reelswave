@@ -227,7 +227,14 @@ IMPORTANT: Do NOT read these instructions aloud. They are for your internal crea
         const connectedProfiles = await getConnectedProfiles(user.late_dev_profile_id);
 
         if (connectedProfiles.length > 0) {
-            const profileIds = connectedProfiles.map(p => p.id);
+            // Deduplicate — keep only the first account per platform (1 TikTok, 1 IG, 1 YT max)
+            const seen = new Set();
+            const uniqueProfiles = connectedProfiles.filter(p => {
+                if (seen.has(p.platform)) return false;
+                seen.add(p.platform);
+                return true;
+            });
+            const profileIds = uniqueProfiles.map(p => p.id);
             await uploadVideo({
                 profileIds,
                 videoUrl: publicUrl,
