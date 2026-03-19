@@ -225,16 +225,27 @@ IMPORTANT: Do NOT read these instructions aloud. They are for your internal crea
         console.log(`[Auto Growth ${userId}] Posting to Socials...`);
         console.log(`[Auto Growth ${userId}] Using Late.dev profile ID: ${user.late_dev_profile_id}`);
         const connectedProfiles = await getConnectedProfiles(user.late_dev_profile_id);
+
         if (connectedProfiles.length > 0) {
-            // profileIds in Late.dev createPost = the profile CONTAINER ID, not account IDs
-            // Passing the user's profile ID posts to all accounts within that profile only
-            console.log(`[Auto Growth ${userId}] Posting to Late.dev profile: ${user.late_dev_profile_id}`);
+            // profileIds in Late.dev createPost = individual social ACCOUNT IDs (_id),
+            // NOT the container profile ID. Deduplicate by platform (1 per platform).
+            const seen = new Set();
+            const accountIds = connectedProfiles
+                .filter(a => {
+                    if (seen.has(a.platform)) return false;
+                    seen.add(a.platform);
+                    return true;
+                })
+                .map(a => a._id || a.id)
+                .filter(Boolean);
+
+            console.log(`[Auto Growth ${userId}] Posting to account IDs:`, accountIds);
             await uploadVideo({
-                profileIds: [user.late_dev_profile_id],
+                profileIds: accountIds,
                 videoUrl: publicUrl,
                 text: `${script.title}\n\n${script.hashtags.map(t => `#${t}`).join(' ')}`
             });
-            console.log(`[Auto Growth ${userId}] Successfully posted to ${connectedProfiles.length} socials.`);
+            console.log(`[Auto Growth ${userId}] Successfully posted to ${accountIds.length} socials.`);
         } else {
             console.warn(`[Auto Growth ${userId}] No social profiles connected. Skipping post.`);
         }
