@@ -5,6 +5,9 @@ import * as fal from '@fal-ai/serverless-client';
 
 dotenv.config();
 
+// Explicitly configure fal to suppress "Using default configuration" logs
+fal.config({ credentials: process.env.FAL_KEY });
+
 /**
  * Generate and download AI images from Fal.ai Flux Schnell
  * @param {Object} options
