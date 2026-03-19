@@ -225,12 +225,20 @@ IMPORTANT: Do NOT read these instructions aloud. They are for your internal crea
         console.log(`[Auto Growth ${userId}] Posting to Socials...`);
         console.log(`[Auto Growth ${userId}] Using Late.dev profile ID: ${user.late_dev_profile_id}`);
         const connectedProfiles = await getConnectedProfiles(user.late_dev_profile_id);
-        console.log(`[Auto Growth ${userId}] Connected accounts:`, connectedProfiles.map(p => ({ id: p.id, platform: p.platform, name: p.name })));
+        console.log(`[Auto Growth ${userId}] All accounts returned:`, connectedProfiles.map(p => ({ id: p.id, platform: p.platform, name: p.name, profileId: p.profileId })));
 
         if (connectedProfiles.length > 0) {
+            // Filter to ONLY accounts belonging to this user's Late.dev profile
+            // Late.dev listAccounts may return all accounts — guard against cross-profile posting
+            const ownAccounts = connectedProfiles.filter(p => {
+                if (!p.profileId) return true; // if field missing, trust the query filter
+                return p.profileId === user.late_dev_profile_id;
+            });
+            console.log(`[Auto Growth ${userId}] Filtered to own accounts:`, ownAccounts.map(p => ({ id: p.id, platform: p.platform, name: p.name })));
+
             // Deduplicate — keep only the first account per platform (1 TikTok, 1 IG, 1 YT max)
             const seen = new Set();
-            const uniqueProfiles = connectedProfiles.filter(p => {
+            const uniqueProfiles = ownAccounts.filter(p => {
                 if (seen.has(p.platform)) return false;
                 seen.add(p.platform);
                 return true;
