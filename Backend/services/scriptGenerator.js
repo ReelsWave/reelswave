@@ -10,6 +10,66 @@ const inworldLLM = new OpenAI({
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// ─── Character diversity pools ───────────────────────────────────────────────
+
+const OUTFIT_PALETTES = [
+  'bright red hoodie and white joggers',
+  'mustard yellow oversized jacket and brown cargo pants',
+  'burnt orange tracksuit with white sneakers',
+  'lime green windbreaker over a black turtleneck',
+  'hot pink crop jacket and high-waisted black jeans',
+  'forest green flannel shirt and khaki pants',
+  'deep purple velvet jacket over a white tee',
+  'rust-colored corduroy jacket and olive pants',
+  'bright coral button-up shirt and light grey slacks',
+  'teal oversized sweater and dark jeans',
+  'maroon varsity jacket and black sweatpants',
+  'electric blue tracksuit with gold trim',
+  'cream linen suit over a salmon dress shirt',
+  'black leather jacket over a red graphic tee',
+  'lavender puffer jacket and white jeans',
+  'dark burgundy turtleneck and charcoal trousers',
+];
+
+const ETHNICITIES = [
+  'Ethiopian', 'Korean', 'Lebanese', 'Mexican', 'Nigerian',
+  'Polish', 'South Indian', 'Brazilian', 'Japanese', 'Turkish',
+  'Dominican', 'Pakistani', 'Italian', 'Filipino', 'Peruvian',
+  'Moroccan', 'Vietnamese', 'Jamaican', 'Russian', 'Ghanaian',
+];
+
+const AGES = ['17', '19', '23', '27', '31', '38', '44', '52', '61', '67'];
+
+const BUILDS = [
+  'very slim and lanky', 'lean and athletic', 'stocky and broad-shouldered',
+  'heavyset', 'short and compact', 'tall and wiry', 'average build',
+];
+
+const HAIR_STYLES = [
+  'shaved head', 'messy ginger curls', 'long black braids', 'short bleached tips',
+  'silver swept-back hair', 'thick afro', 'wavy brown hair past the shoulders',
+  'tight black coils cropped close', 'straight jet-black hair in a ponytail',
+  'salt-and-pepper stubble with a bald fade', 'fiery red bob cut',
+];
+
+const FACE_DETAILS = [
+  'round face with big nervous eyes', 'sharp jawline and deep-set tired eyes',
+  'freckles across the nose and uneven eyebrows', 'strong cheekbones and a wide nose',
+  'long narrow face with a thin mustache', 'high cheekbones and hooded eyes',
+  'soft chubby cheeks and a gap-toothed smile', 'heavy brow with intense dark eyes',
+];
+
+function buildCharacterBlueprint() {
+  return {
+    age: pick(AGES),
+    ethnicity: pick(ETHNICITIES),
+    build: pick(BUILDS),
+    hair: pick(HAIR_STYLES),
+    face: pick(FACE_DETAILS),
+    outfit: pick(OUTFIT_PALETTES),
+  };
+}
+
 // ─── Creative randomization pools ────────────────────────────────────────────
 // These are injected into every generation to prevent GPT from defaulting
 // to its favorite 10-15 "safe" scenarios.
@@ -180,6 +240,8 @@ export async function generateScript({ topic, niche, tone = 'energetic', duratio
   const customCTA = ctaMatch ? ctaMatch[1].trim() : null;
   const cleanTopic = topic.replace(/mention\s+at\s+the\s+end\s*:.+/i, '').trim();
 
+  const char = buildCharacterBlueprint();
+
   const prompt = `Create a ${duration}-second faceless video script.
 
 TOPIC: ${cleanTopic}
@@ -187,6 +249,14 @@ NICHE: ${niche}
 TONE: ${tone}
 VISUAL_STYLE_PROMPT: ${style}
 ${customCTA ? `CALL TO ACTION — use this EXACT text as the callToAction field: "${customCTA}"` : ''}
+
+MANDATORY CHARACTER BLUEPRINT — build the characterDescription from EXACTLY these traits. Do NOT substitute or genericize:
+- Age: ${char.age}
+- Ethnicity: ${char.ethnicity}
+- Build: ${char.build}
+- Hair: ${char.hair}
+- Face: ${char.face}
+- Outfit: ${char.outfit} ← USE THIS EXACT COLOR AND CLOTHING. Do NOT default to blue, grey, or scrubs.
 ${scenarioHint ? `\nSCENARIO — base the video on EXACTLY this, do not deviate:\n${scenarioHint}` : ''}
 
 ━━━ WORD COUNT — READ THIS FIRST ━━━
@@ -225,7 +295,7 @@ Return ONLY valid JSON:
 {
   "title": "Short reference title for the creator",
   "hook": "The scroll-stopping opening line. FIRST 3 WORDS IN ALL CAPS.",
-  "characterDescription": "Hyper-specific locked physical description of the main character — same across ALL frames. Include age, ethnicity, hair, clothing, one distinctive feature. Example: 'A 24-year-old Filipino woman with straight black hair in a ponytail, wearing an oversized grey hoodie and gold hoop earrings, with a small scar above her left eyebrow'.",
+  "characterDescription": "Use the MANDATORY CHARACTER BLUEPRINT above. Combine all traits into one locked sentence. Example output for a blueprint: 'A 31-year-old Nigerian man with a thick afro, heavyset build, round face with big nervous eyes, wearing a mustard yellow oversized jacket and brown cargo pants'. Every imagePrompt must begin with this EXACT sentence.",
   "segments": [
     {
       "text": "Segment narration. Middle story body only — NO hook, NO CTA here.",
