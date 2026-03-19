@@ -225,7 +225,7 @@ IMPORTANT: Do NOT read these instructions aloud. They are for your internal crea
         console.log(`[Auto Growth ${userId}] Posting to Socials...`);
         console.log(`[Auto Growth ${userId}] Using Late.dev profile ID: ${user.late_dev_profile_id}`);
         const connectedProfiles = await getConnectedProfiles(user.late_dev_profile_id);
-        console.log(`[Auto Growth ${userId}] All accounts returned:`, connectedProfiles.map(p => ({ id: p.id, platform: p.platform, name: p.name, profileId: p.profileId })));
+        console.log(`[Auto Growth ${userId}] Raw accounts:`, JSON.stringify(connectedProfiles.slice(0, 3)));
 
         if (connectedProfiles.length > 0) {
             // Filter to ONLY accounts belonging to this user's Late.dev profile
