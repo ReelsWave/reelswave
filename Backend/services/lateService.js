@@ -98,7 +98,13 @@ export async function getConnectedProfiles(profileId) {
         const accounts = await late.accounts.listAccounts({
             query: { profileId }
         });
-        return accounts.data?.accounts || [];
+        // Normalise field names — Late.dev uses _id, map to id for frontend compatibility
+        const raw = accounts.data?.accounts || [];
+        return raw.map(a => ({
+            ...a,
+            id: a._id,
+            name: a.displayName || a.username || a._id,
+        }));
     } catch (err) {
         console.error('Late.dev getConnectedProfiles error:', err.message);
         return [];

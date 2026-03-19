@@ -225,16 +225,15 @@ IMPORTANT: Do NOT read these instructions aloud. They are for your internal crea
         console.log(`[Auto Growth ${userId}] Posting to Socials...`);
         console.log(`[Auto Growth ${userId}] Using Late.dev profile ID: ${user.late_dev_profile_id}`);
         const connectedProfiles = await getConnectedProfiles(user.late_dev_profile_id);
-        console.log(`[Auto Growth ${userId}] Raw accounts:`, JSON.stringify(connectedProfiles.slice(0, 3)));
-
         if (connectedProfiles.length > 0) {
+            // Late.dev uses _id not id, and profileId is an object { _id, name }
             // Filter to ONLY accounts belonging to this user's Late.dev profile
-            // Late.dev listAccounts may return all accounts — guard against cross-profile posting
             const ownAccounts = connectedProfiles.filter(p => {
-                if (!p.profileId) return true; // if field missing, trust the query filter
-                return p.profileId === user.late_dev_profile_id;
+                const accountProfileId = p.profileId?._id || p.profileId;
+                if (!accountProfileId) return true; // trust the query filter if field missing
+                return accountProfileId === user.late_dev_profile_id;
             });
-            console.log(`[Auto Growth ${userId}] Filtered to own accounts:`, ownAccounts.map(p => ({ id: p.id, platform: p.platform, name: p.name })));
+            console.log(`[Auto Growth ${userId}] Posting to accounts:`, ownAccounts.map(p => ({ id: p._id, platform: p.platform, name: p.displayName || p.username })));
 
             // Deduplicate — keep only the first account per platform (1 TikTok, 1 IG, 1 YT max)
             const seen = new Set();
@@ -243,7 +242,7 @@ IMPORTANT: Do NOT read these instructions aloud. They are for your internal crea
                 seen.add(p.platform);
                 return true;
             });
-            const profileIds = uniqueProfiles.map(p => p.id);
+            const profileIds = uniqueProfiles.map(p => p._id);
             await uploadVideo({
                 profileIds,
                 videoUrl: publicUrl,
