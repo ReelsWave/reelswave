@@ -227,25 +227,24 @@ IMPORTANT: Do NOT read these instructions aloud. They are for your internal crea
         const connectedProfiles = await getConnectedProfiles(user.late_dev_profile_id);
 
         if (connectedProfiles.length > 0) {
-            // profileIds in Late.dev createPost = individual social ACCOUNT IDs (_id),
-            // NOT the container profile ID. Deduplicate by platform (1 per platform).
+            // Zernio API: platforms array with { platform, accountId } — one per platform
             const seen = new Set();
-            const accountIds = connectedProfiles
+            const accounts = connectedProfiles
                 .filter(a => {
                     if (seen.has(a.platform)) return false;
                     seen.add(a.platform);
                     return true;
                 })
-                .map(a => a._id || a.id)
-                .filter(Boolean);
+                .map(a => ({ platform: a.platform, accountId: a._id || a.id }))
+                .filter(a => a.accountId);
 
-            console.log(`[Auto Growth ${userId}] Posting to account IDs:`, accountIds);
+            console.log(`[Auto Growth ${userId}] Posting to accounts:`, JSON.stringify(accounts));
             await uploadVideo({
-                profileIds: accountIds,
+                accounts,
                 videoUrl: publicUrl,
                 text: `${script.title}\n\n${script.hashtags.map(t => `#${t}`).join(' ')}`
             });
-            console.log(`[Auto Growth ${userId}] Successfully posted to ${accountIds.length} socials.`);
+            console.log(`[Auto Growth ${userId}] Successfully posted to ${accounts.length} socials.`);
         } else {
             console.warn(`[Auto Growth ${userId}] No social profiles connected. Skipping post.`);
         }

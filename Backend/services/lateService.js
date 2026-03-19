@@ -55,28 +55,31 @@ export async function getConnectUrl(profileId, platform) {
 /**
  * Upload and post a video to connected social accounts
  * @param {Object} params
- * @param {string[]} params.profileIds - Array of Late.dev profile IDs to post to
+ * @param {Array<{platform: string, accountId: string}>} params.accounts - Zernio account targets
  * @param {string} params.videoUrl - Public URL of the video
  * @param {string} params.text - Caption/description for the post
  * @returns {Promise<Object>} - The created post object
  */
-export async function uploadVideo({ profileIds, videoUrl, text }) {
+export async function uploadVideo({ accounts, videoUrl, text }) {
     try {
-        if (!profileIds || profileIds.length === 0) {
-            throw new Error('No social profiles connected');
+        if (!accounts || accounts.length === 0) {
+            throw new Error('No social accounts connected');
         }
+
+        // Zernio API format: platforms array with { platform, accountId } per target
+        const platforms = accounts.map(a => ({
+            platform: a.platform,
+            accountId: a.accountId
+        }));
+
+        console.log('[lateService] Posting to platforms:', JSON.stringify(platforms));
 
         const result = await late.posts.createPost({
             body: {
-                profileIds,
                 content: text,
                 publishNow: true,
-                mediaItems: [
-                    {
-                        type: 'video',
-                        url: videoUrl
-                    }
-                ]
+                platforms,
+                mediaItems: [{ type: 'video', url: videoUrl }]
             }
         });
 
