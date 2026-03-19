@@ -273,6 +273,39 @@ Return ONLY valid JSON:
     throw new Error(`Script JSON unparseable: ${parseErr.message}`);
   }
 
+  // ── Word count enforcement ──────────────────────────────────────────────────
+  // Hermes ignores word count instructions — enforce programmatically.
+  // Strategy: trim words from the longest segments until we hit targetWords.
+  const countWords = (t = '') => (t.match(/\S+/g) || []).length;
+
+  const trimToTarget = (scriptObj, target) => {
+    const hookWords = countWords(scriptObj.hook);
+    const ctaWords  = countWords(scriptObj.callToAction);
+    const budget    = target - hookWords - ctaWords; // words available for segments
+
+    // Trim each segment proportionally
+    let totalSegWords = scriptObj.segments.reduce((s, seg) => s + countWords(seg.text), 0);
+    if (totalSegWords <= budget) return scriptObj; // already within budget
+
+    // Iteratively shorten the longest segment by removing words from the end
+    const segs = scriptObj.segments.map(s => ({ ...s }));
+    while (true) {
+      const currentTotal = segs.reduce((s, seg) => s + countWords(seg.text), 0);
+      if (currentTotal <= budget) break;
+      // Find longest segment
+      let maxIdx = 0;
+      segs.forEach((seg, i) => { if (countWords(seg.text) > countWords(segs[maxIdx].text)) maxIdx = i; });
+      const words = segs[maxIdx].text.trim().split(/\s+/);
+      if (words.length <= 3) break; // don't destroy segments shorter than 3 words
+      words.pop();
+      segs[maxIdx].text = words.join(' ');
+    }
+    return { ...scriptObj, segments: segs };
+  };
+
+  script = trimToTarget(script, targetWords);
+  // ───────────────────────────────────────────────────────────────────────────
+
   // Combine all text for voiceover
   const fullScript = [
     script.hook,
