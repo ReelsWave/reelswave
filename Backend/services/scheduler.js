@@ -226,25 +226,11 @@ IMPORTANT: Do NOT read these instructions aloud. They are for your internal crea
         console.log(`[Auto Growth ${userId}] Using Late.dev profile ID: ${user.late_dev_profile_id}`);
         const connectedProfiles = await getConnectedProfiles(user.late_dev_profile_id);
         if (connectedProfiles.length > 0) {
-            // Late.dev uses _id not id, and profileId is an object { _id, name }
-            // Filter to ONLY accounts belonging to this user's Late.dev profile
-            const ownAccounts = connectedProfiles.filter(p => {
-                const accountProfileId = p.profileId?._id || p.profileId;
-                if (!accountProfileId) return true; // trust the query filter if field missing
-                return accountProfileId === user.late_dev_profile_id;
-            });
-            console.log(`[Auto Growth ${userId}] Posting to accounts:`, ownAccounts.map(p => ({ id: p._id, platform: p.platform, name: p.displayName || p.username })));
-
-            // Deduplicate — keep only the first account per platform (1 TikTok, 1 IG, 1 YT max)
-            const seen = new Set();
-            const uniqueProfiles = ownAccounts.filter(p => {
-                if (seen.has(p.platform)) return false;
-                seen.add(p.platform);
-                return true;
-            });
-            const profileIds = uniqueProfiles.map(p => p._id);
+            // profileIds in Late.dev createPost = the profile CONTAINER ID, not account IDs
+            // Passing the user's profile ID posts to all accounts within that profile only
+            console.log(`[Auto Growth ${userId}] Posting to Late.dev profile: ${user.late_dev_profile_id}`);
             await uploadVideo({
-                profileIds,
+                profileIds: [user.late_dev_profile_id],
                 videoUrl: publicUrl,
                 text: `${script.title}\n\n${script.hashtags.map(t => `#${t}`).join(' ')}`
             });
