@@ -27,8 +27,8 @@ const NICHE_VOICE_SETTINGS = {
 
 const INWORLD_DEFAULT_VOICE = 'Ashley';
 
-// Full catalog — sourced from the Inworld TTS voice list
-const INWORLD_VOICES = [
+// Fallback catalog used if the API fetch fails
+const INWORLD_VOICES_FALLBACK = [
     { id: 'Abby',     name: 'Abby',     labels: { gender: 'Female', age: 'Young' } },
     { id: 'Alex',     name: 'Alex',     labels: { gender: 'Male',   age: 'Middle Aged' } },
     { id: 'Amina',    name: 'Amina',    labels: { gender: 'Female', age: 'Middle Aged' } },
@@ -45,6 +45,8 @@ const INWORLD_VOICES = [
     { id: 'Mark',     name: 'Mark',     labels: { gender: 'Male',   age: 'Middle Aged' } },
     { id: 'Olivia',   name: 'Olivia',   labels: { gender: 'Female', age: 'Middle Aged' } },
     { id: 'Theodore', name: 'Theodore', labels: { gender: 'Male',   age: 'Old' } },
+    // Custom cloned voices
+    { id: 'default-4bxboc9fz9kno2krbnku4g__speed', name: 'Speed (Clone)', labels: { gender: 'Male', age: 'Young' } },
 ];
 
 function inworldAuthHeader() {
@@ -97,12 +99,27 @@ export async function getVoices() {
     const provider = (process.env.VOICE_PROVIDER || 'elevenlabs').toLowerCase();
 
     if (provider === 'inworld') {
-        // Return hardcoded catalog — previewUrl is populated by the frontend
-        // using the /api/videos/voice-preview/:voiceId endpoint
-        return INWORLD_VOICES.map(v => ({
+        try {
+            // Fetch live voice list from Inworld — includes custom/cloned voices automatically
+            const res = await axios.get('https://api.inworld.ai/tts/v1/voices', {
+                headers: { Authorization: inworldAuthHeader() }
+            });
+            const voices = res.data?.voices || [];
+            return voices.map(v => ({
+                id: v.voiceId,
+                name: v.isCustom ? `${v.displayName} ✦` : v.displayName,
+                category: v.isCustom ? 'cloned' : 'inworld',
+                previewUrl: null,
+                labels: { custom: v.isCustom }
+            }));
+        } catch (err) {
+            console.warn('[voiceGenerator] Failed to fetch Inworld voices from API, using fallback list:', err.message);
+            // Fall through to hardcoded list
+        }
+        return INWORLD_VOICES_FALLBACK.map(v => ({
             ...v,
-            category: 'inworld',
-            previewUrl: null, // frontend injects the endpoint URL
+            category: v.id.includes('__') ? 'cloned' : 'inworld',
+            previewUrl: null,
         }));
     }
 
