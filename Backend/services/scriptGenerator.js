@@ -350,22 +350,41 @@ Make this shit hilariously unhinged, painfully relatable in its stupidity, and w
     const ctaWords  = countWords(scriptObj.callToAction);
     const budget    = target - hookWords - ctaWords; // words available for segments
 
-    // Trim each segment proportionally
     let totalSegWords = scriptObj.segments.reduce((s, seg) => s + countWords(seg.text), 0);
     if (totalSegWords <= budget) return scriptObj; // already within budget
 
-    // Iteratively shorten the longest segment by removing words from the end
+    // Trim at SENTENCE boundaries only — never cut a sentence mid-word
+    const trimSegmentOneSentence = (text) => {
+      const t = text.trim();
+      // Find the second-to-last sentence ending (so we remove the last full sentence)
+      const sentenceEndRegex = /[.!?…]+(?:\s|$)/g;
+      const matches = [...t.matchAll(sentenceEndRegex)];
+      if (matches.length >= 2) {
+        // Cut after the second-to-last sentence end
+        const cutAt = matches[matches.length - 2].index + matches[matches.length - 2][0].length;
+        return t.slice(0, cutAt).trim();
+      }
+      if (matches.length === 1) {
+        // Only one sentence — can't trim without destroying it, return as-is
+        return t;
+      }
+      // No sentence boundaries found at all — fall back to removing last 3 words
+      const words = t.split(/\s+/);
+      return words.length > 4 ? words.slice(0, -3).join(' ') : t;
+    };
+
     const segs = scriptObj.segments.map(s => ({ ...s }));
-    while (true) {
+    let safety = 0;
+    while (safety++ < 50) {
       const currentTotal = segs.reduce((s, seg) => s + countWords(seg.text), 0);
       if (currentTotal <= budget) break;
-      // Find longest segment
+      // Find the longest segment to shorten
       let maxIdx = 0;
       segs.forEach((seg, i) => { if (countWords(seg.text) > countWords(segs[maxIdx].text)) maxIdx = i; });
-      const words = segs[maxIdx].text.trim().split(/\s+/);
-      if (words.length <= 3) break; // don't destroy segments shorter than 3 words
-      words.pop();
-      segs[maxIdx].text = words.join(' ');
+      const before = segs[maxIdx].text;
+      segs[maxIdx].text = trimSegmentOneSentence(before);
+      // If trimming didn't change anything, stop to avoid infinite loop
+      if (segs[maxIdx].text === before) break;
     }
     return { ...scriptObj, segments: segs };
   };
