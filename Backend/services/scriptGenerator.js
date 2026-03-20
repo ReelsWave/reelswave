@@ -259,9 +259,11 @@ MANDATORY CHARACTER BLUEPRINT (lock this exact character across EVERY image & st
 - Outfit: ${char.outfit} ← USE THIS EXACT COLOR COMBO & DESCRIPTION. NEVER default to blue, grey, scrubs, or anything lame.
 ${scenarioHint ? `\nSCENARIO — base the ENTIRE video STRICTLY on this exact situation:\n${scenarioHint}` : ''}
 
-━━━ WORD COUNT — OBEY OR DIE TRYING ━━━
-This is a ${duration}-second video. Narration runs ~2.5 words per second → you MUST hit EXACTLY ${targetWords} words total (hook + ALL segment texts + callToAction). Count obsessively. If you're under by even 10 words, keep adding chaotic details until you nail it. The reference example is SHORT ON PURPOSE — ignore its length. Your script must reach ${targetWords} words with escalating ridiculousness.
-Each of the ${minSegments} segments must deliver ${minWordsPerSeg}–${maxWordsPerSeg} words of narration. No shortchanging.
+━━━ WORD COUNT — NON-NEGOTIABLE ━━━
+This is a ${duration}-second video. Speech runs at 2.5 words/sec → the TOTAL word count across hook + ALL segment texts + callToAction MUST be between ${targetWords - 5} and ${targetWords + 10} words.
+- Count every word before you output. If you're short, ADD more chaotic detail to existing segments. Never stop early.
+- Each of the ${minSegments} segments must have ${minWordsPerSeg}–${maxWordsPerSeg} words. No segment gets to be lazy.
+- DO NOT output fewer segments than ${minSegments}. DO NOT combine segments. Hit the count or keep writing.
 
 ━━━ STORY RULES — ONE CONTINUOUS CHAOTIC FEVER DREAM ━━━
 - ONE single ridiculous situation. ONE character (you/the narrator). ONE escalating disaster arc. NO scene jumps, NO unrelated tangents.
@@ -340,57 +342,7 @@ Make this shit hilariously unhinged, painfully relatable in its stupidity, and w
     throw new Error(`Script JSON unparseable: ${parseErr.message}`);
   }
 
-  // ── Word count enforcement ──────────────────────────────────────────────────
-  // Hermes ignores word count instructions — enforce programmatically.
-  // Strategy: trim words from the longest segments until we hit targetWords.
   const countWords = (t = '') => (t.match(/\S+/g) || []).length;
-
-  const trimToTarget = (scriptObj, target) => {
-    const hookWords = countWords(scriptObj.hook);
-    const ctaWords  = countWords(scriptObj.callToAction);
-    const budget    = target - hookWords - ctaWords; // words available for segments
-
-    let totalSegWords = scriptObj.segments.reduce((s, seg) => s + countWords(seg.text), 0);
-    if (totalSegWords <= budget) return scriptObj; // already within budget
-
-    // Trim at SENTENCE boundaries only — never cut a sentence mid-word
-    const trimSegmentOneSentence = (text) => {
-      const t = text.trim();
-      // Find the second-to-last sentence ending (so we remove the last full sentence)
-      const sentenceEndRegex = /[.!?…]+(?:\s|$)/g;
-      const matches = [...t.matchAll(sentenceEndRegex)];
-      if (matches.length >= 2) {
-        // Cut after the second-to-last sentence end
-        const cutAt = matches[matches.length - 2].index + matches[matches.length - 2][0].length;
-        return t.slice(0, cutAt).trim();
-      }
-      if (matches.length === 1) {
-        // Only one sentence — can't trim without destroying it, return as-is
-        return t;
-      }
-      // No sentence boundaries found at all — fall back to removing last 3 words
-      const words = t.split(/\s+/);
-      return words.length > 4 ? words.slice(0, -3).join(' ') : t;
-    };
-
-    const segs = scriptObj.segments.map(s => ({ ...s }));
-    let safety = 0;
-    while (safety++ < 50) {
-      const currentTotal = segs.reduce((s, seg) => s + countWords(seg.text), 0);
-      if (currentTotal <= budget) break;
-      // Find the longest segment to shorten
-      let maxIdx = 0;
-      segs.forEach((seg, i) => { if (countWords(seg.text) > countWords(segs[maxIdx].text)) maxIdx = i; });
-      const before = segs[maxIdx].text;
-      segs[maxIdx].text = trimSegmentOneSentence(before);
-      // If trimming didn't change anything, stop to avoid infinite loop
-      if (segs[maxIdx].text === before) break;
-    }
-    return { ...scriptObj, segments: segs };
-  };
-
-  script = trimToTarget(script, targetWords);
-  // ───────────────────────────────────────────────────────────────────────────
 
   // Combine all text for voiceover
   const fullScript = [
