@@ -118,7 +118,7 @@ Alternate speakers A/B/A/B strictly. No text, watermarks, or subtitles in image 
   const systemPersona = buildPersona(niche, tone);
 
   const response = await inworldLLM.chat.completions.create({
-    model: 'hermes-3-llama-3-1-70b',
+    model: 'minimax-m2-5',
     messages: [
       { role: 'system', content: systemPersona },
       { role: 'user', content: prompt }
