@@ -278,6 +278,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     let tsIndex = 0;
     let globalLastEndTime = 0; // Better tracking for non-spoken punctuations
+    let prevLineEnd = 0; // Tracks end of the last rendered dialogue line to prevent duplicates
 
     for (let i = 0; i < assWords.length; i += wordsPerCaption) {
         const captionWords = assWords.slice(i, i + wordsPerCaption);
@@ -360,25 +361,27 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             // Lock to absolute center + apply dynamic font size if needed
             activeLineText = `{\\an5}${dynFs}${activeLineText}`;
 
-            // Bridging micro-pauses:
-            let renderStart = currentTiming.start;
+            // Ensure this line starts strictly after the previous one ended — prevents duplicate
+            // renders when Whisper returns two words with identical start timestamps.
+            let renderStart = Math.max(currentTiming.start, prevLineEnd);
             let renderEnd = currentTiming.end;
 
             // If there is another word after this one IN THIS BLOCK, extend this frame to touch it
             if (j < wordTimings.length - 1) {
-                renderEnd = wordTimings[j + 1].start;
+                renderEnd = Math.max(wordTimings[j + 1].start, renderStart + 0.05);
             } else if (i + wordsPerCaption < assWords.length && timestamps && tsIndex < timestamps.length) {
-                // If it's the last word in the block, and another block exists, extend the frame
-                // slightly to touch the START of the VERY NEXT spoken word in the global stream 
-                // (or cap at 0.5s max so it doesn't freeze on screen for long pauses)
+                // If it's the last word in the block, extend slightly to touch the next block's start
+                // (cap at 0.5s so it doesn't freeze on screen during long pauses)
                 let nextGlobalStart = timestamps[tsIndex].start;
                 if (nextGlobalStart - renderEnd > 0 && nextGlobalStart - renderEnd < 0.5) {
                     renderEnd = nextGlobalStart;
                 }
             }
 
-            // Fallback safety to ensure end is always strictly after start
-            if (renderEnd <= renderStart) renderEnd = renderStart + 0.1;
+            // Always ensure end is strictly after start
+            if (renderEnd <= renderStart) renderEnd = renderStart + 0.05;
+
+            prevLineEnd = renderEnd;
 
             assContent += `Dialogue: 0,${formatAssTime(renderStart)},${formatAssTime(renderEnd)},Default,,0,0,0,,${activeLineText}\n`;
         }
