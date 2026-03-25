@@ -303,10 +303,12 @@ export async function generateDialogueVoiceover({ script, voiceIdA, voiceIdB, ou
     const voiceB = voiceIdB || voiceA; // fall back to same voice if B not provided
 
     // Build ordered list of all spoken pieces with their speaker
+    // NOTE: hook is excluded — in dialogue format the first segment IS the hook.
+    //       Including it separately causes the opening line to repeat twice.
     const pieces = [
-        { text: script.hook, speaker: 'A' },
         ...script.segments.map(s => ({ text: s.text, speaker: s.speaker || 'A' })),
-        { text: script.callToAction, speaker: 'A' },
+        // Only include CTA if the user explicitly set one
+        ...(script.callToAction ? [{ text: script.callToAction, speaker: 'A' }] : []),
     ];
 
     const segmentPaths = [];

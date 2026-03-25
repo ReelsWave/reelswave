@@ -110,7 +110,7 @@ Dialogue is punchy. Short reactive lines. Count before you write the next one.
       "duration": estimated_seconds
     }
   ],
-  "callToAction": "${customCTA || 'go to reelswave.com'}",
+  "callToAction": "${customCTA || ''}",
   "hashtags": ["3 to 5 relevant tags"]
 }
 
