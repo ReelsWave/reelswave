@@ -144,6 +144,13 @@ Alternate speakers A/B/A/B strictly. No text, watermarks, or subtitles in image 
     throw new Error(`Script JSON unparseable: ${parseErr.message}`);
   }
 
+  // Fix model hallucinations of the domain name
+  if (script.callToAction) {
+    script.callToAction = script.callToAction
+      .replace(/reals?wa+ve\.com/gi, 'reelswave.com')
+      .replace(/reel[^s]wave\.com/gi, 'reelswave.com');
+  }
+
   // Combine all text for voiceover
   const fullScript = [
     script.hook,

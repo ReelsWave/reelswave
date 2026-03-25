@@ -45,7 +45,19 @@ const processJob = async (jobId, userId, topic, niche, tone, duration, voiceId, 
 
         // Step 3: Fetch stock footage
         jobs.set(jobId, { ...jobs.get(jobId), status: 'fetching_footage', progress: 50 });
-        const searchTerms = script.segments.map(s => s.imagePrompt || s.searchTerm);
+
+        // Programmatically prepend the correct character description to every image prompt
+        // — never trust the model to do this consistently
+        const searchTerms = script.segments.map(s => {
+            const charDesc = s.speaker === 'B'
+                ? script.characterDescriptionB
+                : script.characterDescriptionA;
+            const base = s.imagePrompt || s.searchTerm || '';
+            if (charDesc && !base.toLowerCase().startsWith(charDesc.toLowerCase().slice(0, 30))) {
+                return `${charDesc}. ${base}`;
+            }
+            return base;
+        });
         const clips = await fetchStockFootage({
             searchTerms,
             outputDir: OUTPUT_DIR,
