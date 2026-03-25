@@ -229,11 +229,11 @@ export function buildCreativeConstraint() {
  */
 export async function generateScript({ topic, niche, tone = 'energetic', duration = 60, style = '', scenarioHint = '' }) {
   const targetWords = Math.round((duration / 60) * 160);
-  // 45s → 16 images, 75s → 22 images (linear interpolation, ~3s per image)
-  const minSegments = Math.round(16 + (duration - 45) * 0.2);
-  const wordsPerSegment = Math.round((targetWords - 30) / minSegments);
+  // Dialogue: ~10 words per line, tightly controlled to hit duration target
+  const minSegments = Math.round(targetWords / 10);
+  const wordsPerSegment = Math.round(targetWords / minSegments);
   const minWordsPerSeg = Math.max(5, wordsPerSegment - 2);
-  const maxWordsPerSeg = Math.max(minWordsPerSeg + 3, wordsPerSegment + 5);
+  const maxWordsPerSeg = wordsPerSegment + 3;
 
   // Extract any "Mention AT THE END:" instruction from the topic
   const ctaMatch = topic.match(/mention\s+at\s+the\s+end\s*:\s*(.+)/i);
@@ -268,23 +268,32 @@ ${customCTA ? `CALL TO ACTION — use this EXACT text as the callToAction field:
 - Outfit: ${charB.outfit} ← EXACT colors. NEVER blue, grey, scrubs, or boring.
 ${scenarioHint ? `\nSCENARIO — base the ENTIRE video STRICTLY on this exact situation:\n${scenarioHint}` : ''}
 
-━━━ WORD COUNT — NON-NEGOTIABLE ━━━
-This is a ${duration}-second video. Speech runs at 2.5 words/sec → TOTAL words across hook + ALL segment texts + callToAction MUST be between ${targetWords - 5} and ${targetWords + 10}.
-- Count every word before outputting. If short, ADD more chaotic dialogue lines. Never stop early.
-- Each segment: ${minWordsPerSeg}–${maxWordsPerSeg} words. Dialogue is punchy — short lines, fast exchanges.
-- DO NOT output fewer than ${minSegments} segments. Hit the count or keep writing.
+━━━ WORD COUNT — HARD LIMIT ━━━
+${duration}-second video. 2.5 words/sec = EXACTLY ${targetWords} words total (hook + all segments + callToAction).
+- EVERY segment: ${minWordsPerSeg}–${maxWordsPerSeg} words. Not one word more. Dialogue is punchy — short reactive lines.
+- EXACTLY ${minSegments} segments. Not more, not fewer.
+- Count each segment before writing the next. If a segment exceeds ${maxWordsPerSeg} words, cut it down before moving on.
+- DO NOT write long monologue-style segments. Each line = one punchy reaction. Short. Fast. Done.
 
-━━━ DIALOGUE RULES — TWO PEOPLE, ONE CHAOTIC STORY ━━━
-- Speakers STRICTLY ALTERNATE: A, B, A, B, A, B... No speaker goes twice in a row.
-- Speaker A: the storyteller/reactor — sets up the disaster, reacts with chaos, self-roasts hard.
-- Speaker B: the breakdown voice — clowns on A, adds context, escalates the stupidity, makes it worse.
-- Hook: always Speaker A. Short punchy opener, FIRST 3 WORDS ALL CAPS.
-- ONE continuous ridiculous situation that escalates. NO scene jumps. NO topic switches.
-- Segments 1–${Math.ceil(minSegments * 0.3)}: A sets up the disaster, B questions the dumb decisions.
-- Segments ${Math.ceil(minSegments * 0.3)}–${Math.ceil(minSegments * 0.7)}: stakes skyrocket, both characters react to escalating chaos.
-- Around segment ${Math.ceil(minSegments * 0.7)}: massive twist — B calls out what actually happened, A loses it.
-- Final 2–3 segments: brutal mutual self-roasting + payoff punchline.
-- BANNED PHRASES: "here's the part nobody talks about", "and then it got worse", "little did I know", "you won't believe", "but wait", "here's where it gets interesting". Zero clickbait crutches.
+━━━ DIALOGUE RULES — THEY REACT TO EACH OTHER, NOT CO-NARRATE ━━━
+- Speakers STRICTLY ALTERNATE: A, B, A, B... No speaker goes twice in a row.
+- Speaker A: tells what happened from their POV — chaotic, self-roasting, emotionally unhinged.
+- Speaker B: DIRECTLY REACTS to A's last line — clowns on it, questions it, makes it worse. B never adds new story info unprompted; B RESPONDS to whatever A just said.
+- Every B line must make sense as a direct reply to the A line immediately before it.
+- Every A line after the first must react to what B just said back.
+- Think: two people arguing/reacting in a group chat voice note, not two people taking turns telling a story.
+
+EXAMPLE OF CORRECT DIALOGUE:
+A: "i walked into that meeting with my chest out like i owned the place"
+B: "nigga you were SHAKING when you walked in, i saw you"
+A: "i was not shaking i just had cold air—"
+B: "you had cold air?? bro it was eighty degrees outside"
+
+BANNED: having B just continue A's story as if A never spoke. BANNED: co-narration. BANNED: "here's the part nobody talks about", "and then it got worse", "little did I know", "you won't believe", "but wait".
+
+- Hook: Speaker A only. FIRST 3 WORDS ALL CAPS.
+- ONE ridiculous situation. NO scene jumps.
+- Arc: setup → escalation → twist → mutual self-roast payoff.
 
 ━━━ VOICE RULES — RAW AS FUCK ━━━
 - lowercase i every time.
