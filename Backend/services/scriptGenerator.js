@@ -152,8 +152,11 @@ Alternate speakers A/B/A/B strictly. No text, watermarks, or subtitles in image 
     throw new Error(`Script JSON unparseable: ${parseErr.message}`);
   }
 
-  // Fix model hallucinations of the domain name
-  if (script.callToAction) {
+  // If user didn't provide a CTA, wipe whatever the model invented — no exceptions
+  if (!customCTA) {
+    script.callToAction = '';
+  } else {
+    // Fix model hallucinations of the domain name
     script.callToAction = script.callToAction
       .replace(/reals?wa+ve\.com/gi, 'reelswave.com')
       .replace(/reel[^s]wave\.com/gi, 'reelswave.com');
