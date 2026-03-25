@@ -59,10 +59,18 @@ export async function generateScript({ topic, niche, tone = 'energetic', duratio
 TOPIC: ${cleanTopic}
 NICHE: ${niche}
 TONE: ${tone}
+VISUAL STYLE: ${style || 'cinematic photorealistic'}
 ${customCTA ? `CALL TO ACTION — use this EXACT text as the callToAction field: "${customCTA}"` : ''}
 ${scenarioHint ? `SCENARIO CONTEXT: ${scenarioHint}` : ''}
 
 You have full creative freedom. Invent the scene, setting, characters, and story yourself based on the topic. Make it specific, vivid, and surprising — not generic.
+
+IMPORTANT — character descriptions must match the visual style above:
+- "lego" → describe lego minifigures (yellow blocky hands, printed faces, plastic hair pieces)
+- "anime" → describe anime characters (large expressive eyes, stylized hair, cel-shaded look)
+- "cartoon" → describe cartoon characters (exaggerated features, bold outlines, flat colors)
+- "minecraft" → describe blocky pixel characters (cube heads, pixelated textures)
+- "cinematic" / "realistic" / anything else → describe real people with specific physical traits
 
 ━━━ FORMAT: DIALOGUE BETWEEN TWO PEOPLE ━━━
 Speaker A and Speaker B talk to each other. They REACT to each other — not co-narrate.
