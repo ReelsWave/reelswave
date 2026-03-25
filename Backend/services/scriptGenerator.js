@@ -2,7 +2,7 @@ import OpenAI from 'openai';
 import dotenv from 'dotenv';
 dotenv.config();
 
-// Inworld LLM Router — OpenAI-compatible, Bearer auth, same INWORLD_API_KEY as TTS
+// Inworld LLM Router — OpenAI-compatible, Bearer auth
 const inworldLLM = new OpenAI({
   apiKey: process.env.INWORLD_API_KEY,
   baseURL: 'https://api.inworld.ai/v1'
@@ -10,226 +10,40 @@ const inworldLLM = new OpenAI({
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// ─── Character diversity pools ───────────────────────────────────────────────
-
-const OUTFIT_PALETTES = [
-  'bright red hoodie and white joggers',
-  'mustard yellow oversized jacket and brown cargo pants',
-  'burnt orange tracksuit with white sneakers',
-  'lime green windbreaker over a black turtleneck',
-  'hot pink crop jacket and high-waisted black jeans',
-  'forest green flannel shirt and khaki pants',
-  'deep purple velvet jacket over a white tee',
-  'rust-colored corduroy jacket and olive pants',
-  'bright coral button-up shirt and light grey slacks',
-  'teal oversized sweater and dark jeans',
-  'maroon varsity jacket and black sweatpants',
-  'electric blue tracksuit with gold trim',
-  'cream linen suit over a salmon dress shirt',
-  'black leather jacket over a red graphic tee',
-  'lavender puffer jacket and white jeans',
-  'dark burgundy turtleneck and charcoal trousers',
-];
-
-const ETHNICITIES = [
-  'Ethiopian', 'Korean', 'Lebanese', 'Mexican', 'Nigerian',
-  'Polish', 'South Indian', 'Brazilian', 'Japanese', 'Turkish',
-  'Dominican', 'Pakistani', 'Italian', 'Filipino', 'Peruvian',
-  'Moroccan', 'Vietnamese', 'Jamaican', 'Russian', 'Ghanaian',
-];
-
-const AGES = ['17', '19', '23', '27', '31', '38', '44', '52', '61', '67'];
-
-const BUILDS = [
-  'very slim and lanky', 'lean and athletic', 'stocky and broad-shouldered',
-  'heavyset', 'short and compact', 'tall and wiry', 'average build',
-];
-
-const HAIR_STYLES = [
-  'shaved head', 'messy ginger curls', 'long black braids', 'short bleached tips',
-  'silver swept-back hair', 'thick afro', 'wavy brown hair past the shoulders',
-  'tight black coils cropped close', 'straight jet-black hair in a ponytail',
-  'salt-and-pepper stubble with a bald fade', 'fiery red bob cut',
-];
-
-const FACE_DETAILS = [
-  'round face with big nervous eyes', 'sharp jawline and deep-set tired eyes',
-  'freckles across the nose and uneven eyebrows', 'strong cheekbones and a wide nose',
-  'long narrow face with a thin mustache', 'high cheekbones and hooded eyes',
-  'soft chubby cheeks and a gap-toothed smile', 'heavy brow with intense dark eyes',
-];
-
-function buildCharacterBlueprint() {
-  return {
-    age: pick(AGES),
-    ethnicity: pick(ETHNICITIES),
-    build: pick(BUILDS),
-    hair: pick(HAIR_STYLES),
-    face: pick(FACE_DETAILS),
-    outfit: pick(OUTFIT_PALETTES),
-  };
-}
-
-// ─── Creative randomization pools ────────────────────────────────────────────
-// These are injected into every generation to prevent GPT from defaulting
-// to its favorite 10-15 "safe" scenarios.
-
-const SETTINGS = [
-  'a DMV waiting room', 'a high school reunion', 'a packed subway car', 'an Airbnb check-in',
-  'a dentist waiting room', 'a late-night laundromat', 'a job interview via Zoom', 'a first day at a new gym',
-  'a neighborhood HOA meeting', 'a college dorm move-in day', 'a car dealership', 'a hospital waiting room',
-  'a crowded airport gate', 'a first date at a mini-golf course', 'a department store fitting room',
-  'a company all-hands Zoom call', 'a dog park', 'a college exam hall', 'a hair salon',
-  'a fast food drive-through', 'a children\'s birthday party', 'a retirement party', 'a camping trip',
-  'a school parent-teacher conference', 'a city bus', 'a rooftop apartment', 'a theme park queue',
-  'a spin class', 'a farmers market', 'a courthouse', 'a police non-emergency line hold',
-  'a pharmacy pick-up counter', 'an escape room', 'a work holiday party', 'a university library',
-  'a hotel pool', 'a community garden', 'a co-working space', 'a hospital elevator',
-  'a homeowners association Zoom call', 'a karaoke bar', 'a trivia night', 'an urgent care clinic',
-  'a moving truck', 'a storage unit', 'a wedding rehearsal dinner', 'a book club meeting',
-  'a local town hall meeting', 'a food truck festival', 'a cruise ship dining room',
-];
-
-const CHARACTERS = [
-  'an overconfident intern', 'a sleep-deprived new parent', 'a recently retired teacher',
-  'an overly competitive coworker', 'a college student on financial aid', 'a newly promoted manager',
-  'a first-generation college student', 'someone on their first week of a diet', 'a freelancer with 3 clients',
-  'someone who just got fired and doesn\'t know how to tell their spouse', 'a 30-year-old living with their parents',
-  'a nurse on a double shift', 'someone learning to drive at 35', 'a person allergic to almost everything',
-  'someone who just moved to a new city and knows nobody', 'an ex who keeps accidentally bumping into their ex',
-  'a gym newbie in January', 'someone who lied on their résumé', 'a chronic over-apologizer',
-  'a person who doesn\'t know how to say no', 'a hypochondriac Googling symptoms', 'a night-shift security guard',
-  'someone who mispronounced a word for 20 years', 'a person trying to adult for the first time',
-  'a work-from-home employee who forgot they had a meeting', 'an oldest sibling at a family event',
-  'a 22-year-old first-time homebuyer', 'a PhD student who can\'t explain what they study',
-  'someone trying to impress their partner\'s parents for the first time',
-  'a person who accidentally replied-all to a company email',
-];
-
-const CONFLICTS = [
-  'realizes they\'ve been calling someone the wrong name for months',
-  'accidentally sends a personal text to a group chat',
-  'finds out the "new hire" is actually their boss\'s kid',
-  'gets caught lying about a skill on their résumé mid-task',
-  'walks into the wrong room at the wrong moment',
-  'gives brutally honest feedback thinking they\'re on mute',
-  'accidentally becomes the center of attention in a crowd',
-  'overhears a conversation they weren\'t supposed to',
-  'shows up overdressed — or underdressed — for a major event',
-  'realizes mid-conversation they\'ve been wrong about something for years',
-  'accidentally agrees to something they completely misunderstood',
-  'forgets someone\'s name right before having to introduce them',
-  'gets called out for a lie in the most public way possible',
-  'accidentally friendzones themselves',
-  'is confidently wrong in front of an expert',
-  'shows up to the wrong location for something important',
-  'tries to fix a problem and makes it dramatically worse',
-  'discovers something about themselves everyone else already knew',
-  'gets mistaken for someone else and goes along with it too long',
-  'has to pretend they understand something they absolutely don\'t',
-];
-
-const TWISTS = [
-  'and it turns out the other person had no idea either',
-  'only to find out it was actually a test',
-  'but it ends up working out perfectly by accident',
-  'and the awkward silence reveals everything',
-  'until someone records the whole thing',
-  'and the one person they were avoiding sees the entire thing',
-  'but the other person already knew the whole time',
-  'then a complete stranger saves the day in the most unexpected way',
-  'and it somehow becomes the best thing that ever happened to them',
-  'then their boss/parent/partner walks in at the worst possible second',
-  'only to realize they\'ve been talking to the wrong person entirely',
-  'until autocorrect adds the final insult',
-  'and the Wi-Fi cuts out at the most critical moment',
-  'only for it to become an inside joke that follows them forever',
-  'and the person they least expected is the one who witnessed it',
-];
-
-function pick(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-// ─── Niche-aware persona ──────────────────────────────────────────────────────
-// Each niche gets its own unhinged flavor. The persona is injected as the
-// system message so Llama treats it as its core identity, not a suggestion.
-
-// Voice style reference — shows HOW to write, NOT what to write about
-// The story content (office, boss wife) is irrelevant — only the language register matters
-const VOICE_STYLE_NOTE = `VOICE STYLE REFERENCE — this is ONLY the energy & language register. DO NOT copy ANY plot, setting, character, or event from this example. Invent a completely fresh, different disaster story based purely on the topic/niche/tone given:
-"Everybody hated my bitchass cuz they thought i was blackmailing the boss wife. i tried to talk to them nigga but they dont listen. my dumbass had no idea what i just walked into. then my sprawny looking-ahh boss crashed out, and thats when i realized i done fucked up."
-
-WHAT TO STEAL & CRANK: lowercase i always, intentionally broken grammar that sounds real as fuck, hyper-specific ridiculous details (make 'em painfully vivid & absurd), vicious self-deprecation ("my clown-ass", "my useless mfer", "my dumb bitchass"), nonstop curses every 1-2 sentences, hood slang overload ("nigga", "bitch", "fuck", "ass", "shit", "damn", "bruh", "finna", "lowkey", "deadass", "no cap", "on god", "fr fr", "crashed out", "caught a body", "talkin spicy", "glaze", "wild", "unc", "be so fr", "don't leave me dry"). Make every line feel like it's screamed in a packed whip at a red light. Zero corporate polish.
-WHAT TO AVOID LIKE THE PLAGUE: the office, boss, wife, blackmail — ANY element from the example. No filler. No vague shit.`;
+// ─── Niche system personas ────────────────────────────────────────────────────
+// Short identity description per niche — no examples, no rules, just vibe.
 
 const NICHE_PERSONAS = {
-  funny: `You write absurdly raw, zero-filter hood comedy scripts that hit like a viral TikTok at 3am — chaotic, self-roasting, painfully specific, and hilariously unhinged. ${VOICE_STYLE_NOTE}
-
-Make it unbelievably funny through escalating stupidity, bad decisions, and brutal self-owns. Curse constantly. Swear in almost every sentence. Talk like your life depends on making the listener wheeze-laugh at your misery. Return ONLY valid JSON. No extra text ever.`,
-
-  scary: `You write absurdly raw, zero-filter horror scripts — same chaotic energy as hood comedy but the details are viscerally disturbing instead of funny. ${VOICE_STYLE_NOTE}
-
-Same lowercase, same broken grammar, same hyper-specificity — but every detail should make skin crawl. "the thing had too many joints and it remembered my name from a dream i never told nobody." Never soften. Return ONLY valid JSON.`,
-
-  motivational: `You write raw, zero-filter motivational scripts — brutal tough love with the same chaotic hood energy. ${VOICE_STYLE_NOTE}
-
-Call people out with zero patience. Aggressive and direct. "you been lying to your broke ass self for three years and you know it, nigga." No inspirational poster bullshit. Return ONLY valid JSON.`,
-
-  fitness: `You write raw, zero-filter fitness scripts — brutal gym honesty with the same chaotic hood energy. ${VOICE_STYLE_NOTE}
-
-Expose exactly why someone isn't growing, roast their excuses, make it painfully specific. "you been doing the same dusty-ass 3 exercises for six months and wondering why nothing changed." Return ONLY valid JSON.`,
-
-  finance: `You write raw, zero-filter finance scripts — savage money truth with the same chaotic hood energy. ${VOICE_STYLE_NOTE}
-
-React to the specific dumb thing people do with money like it personally offended you. Real numbers. Roast not lecture. "nigga spent forty dollars on a candle and got thirty in his account." Return ONLY valid JSON.`,
-
-  funfacts: `You write raw, zero-filter fact scripts — chaotic fact delivery with the same hood energy. ${VOICE_STYLE_NOTE}
-
-React to an insane fact like it personally violated you. Your reaction IS the content. "wait wait WAIT. this actually happened and nobody told me??" Return ONLY valid JSON.`,
-
-  lifehacks: `You write raw, zero-filter life hack scripts — frustrated discovery energy with the same hood voice. ${VOICE_STYLE_NOTE}
-
-Low-key offended nobody told you this sooner. "bro i been doing this shit the hard way for TWENTY THREE YEARS." Return ONLY valid JSON.`,
-
-  science: `You write raw, zero-filter science scripts — 3am Wikipedia rabbit hole energy with the same hood voice. ${VOICE_STYLE_NOTE}
-
-Mind-blown and personally offended by the universe. "the universe literally did WHAT and just kept it moving??" Return ONLY valid JSON.`,
-
-  history: `You write raw, zero-filter history scripts — reacting to historical insanity like it just happened, same hood energy. ${VOICE_STYLE_NOTE}
-
-Chaotic true-crime-podcast-fell-into-a-history-book energy. "this nigga really did WHAT in 1843 and they just let him??" Return ONLY valid JSON.`,
-
-  default: `You write raw, zero-filter video scripts with the same absurd chaotic hood energy. ${VOICE_STYLE_NOTE}
-
-Write a completely different story in this exact voice. Return ONLY valid JSON.`
+  funny:        `You are a raw, unfiltered comedy writer. You write scripts that are hilarious, chaotic, and feel like real shit that actually happened — not a punchline setup. Uncensored. Hood voice. Real emotions. Return ONLY valid JSON.`,
+  scary:        `You are a raw horror writer. You write scripts that are viscerally disturbing, hyper-specific, and feel like a personal account of something that really happened. No clichés, no jump-scare tropes. Return ONLY valid JSON.`,
+  motivational: `You are a no-bullshit motivational writer. Brutal tough love. You call people out directly with zero patience for excuses. Feels like a real conversation with someone who genuinely gives a damn. Return ONLY valid JSON.`,
+  fitness:      `You are a raw fitness writer. You expose the exact real reasons people aren't getting results — no filler, no generic advice. Painfully specific and honest. Return ONLY valid JSON.`,
+  finance:      `You are a raw finance writer. You react to real money mistakes people make like it personally offended you. Real numbers, real situations, zero lecture. Return ONLY valid JSON.`,
+  funfacts:     `You are a chaotic fact writer. You react to insane true facts like they just ruined your day. Your reaction and disbelief IS the content. Return ONLY valid JSON.`,
+  lifehacks:    `You are a frustrated life hack writer. Low-key offended that nobody told you this sooner. Personal, specific, genuinely useful. Return ONLY valid JSON.`,
+  science:      `You are a 3am Wikipedia rabbit-hole writer. Mind-blown and personally offended by how wild the universe is. Return ONLY valid JSON.`,
+  history:      `You are a raw history writer. You react to historical insanity like it just happened — chaotic, disbelieving, personal. Return ONLY valid JSON.`,
+  default:      `You are a raw, unfiltered video script writer. Write something real, specific, and engaging. Return ONLY valid JSON.`,
 };
 
 function buildPersona(niche, tone) {
-  const nicheKey = niche?.toLowerCase().replace(/\s+/g, '') || 'default';
-  // If tone explicitly says funny, use funny persona regardless of niche
+  const key = niche?.toLowerCase().replace(/\s+/g, '') || 'default';
   if (tone?.toLowerCase().includes('funny') || tone?.toLowerCase().includes('comedy')) {
     return NICHE_PERSONAS.funny;
   }
-  return NICHE_PERSONAS[nicheKey] || NICHE_PERSONAS.default;
+  return NICHE_PERSONAS[key] || NICHE_PERSONAS.default;
 }
 
+// Kept for backward compatibility with scheduler.js — no longer injects constraints
 export function buildCreativeConstraint() {
-  return `SETTING: ${pick(SETTINGS)} | CHARACTER: ${pick(CHARACTERS)} | CONFLICT: They ${pick(CONFLICTS)} | TWIST: ${pick(TWISTS)}`;
+  return '';
 }
 
 /**
- * Generate a viral video script using GPT-5.4
- * @param {Object} options
- * @param {string} options.topic - The specific topic for the video
- * @param {string} options.niche - Category (motivational, scary, funfacts, lifehacks, etc.)
- * @param {string} options.tone - Voice tone (dramatic, calm, energetic, mysterious)
- * @param {number} options.duration - Target duration in seconds (60-90)
- * @returns {Object} Script with segments and search terms
+ * Generate a viral video script using Hermes 3 via Inworld LLM Router
  */
 export async function generateScript({ topic, niche, tone = 'energetic', duration = 60, style = '', scenarioHint = '' }) {
   const targetWords = Math.round((duration / 60) * 160);
-  // Dialogue: ~10 words per line, tightly controlled to hit duration target
   const minSegments = Math.round(targetWords / 10);
   const wordsPerSegment = Math.round(targetWords / minSegments);
   const minWordsPerSeg = Math.max(5, wordsPerSegment - 2);
@@ -240,106 +54,59 @@ export async function generateScript({ topic, niche, tone = 'energetic', duratio
   const customCTA = ctaMatch ? ctaMatch[1].trim() : null;
   const cleanTopic = topic.replace(/mention\s+at\s+the\s+end\s*:.+/i, '').trim();
 
-  const charA = buildCharacterBlueprint();
-  const charB = buildCharacterBlueprint();
-
-  const prompt = `Create a ${duration}-second faceless video DIALOGUE script — two speakers going back and forth.
+  const prompt = `Create a ${duration}-second video dialogue script.
 
 TOPIC: ${cleanTopic}
 NICHE: ${niche}
 TONE: ${tone}
-VISUAL_STYLE_PROMPT: ${style}
 ${customCTA ? `CALL TO ACTION — use this EXACT text as the callToAction field: "${customCTA}"` : ''}
+${scenarioHint ? `SCENARIO CONTEXT: ${scenarioHint}` : ''}
 
-━━━ CHARACTER A BLUEPRINT (lock across ALL Speaker A image prompts) ━━━
-- Age: ${charA.age}
-- Ethnicity: ${charA.ethnicity}
-- Build: ${charA.build}
-- Hair: ${charA.hair}
-- Face: ${charA.face}
-- Outfit: ${charA.outfit} ← EXACT colors. NEVER blue, grey, scrubs, or boring.
+You have full creative freedom. Invent the scene, setting, characters, and story yourself based on the topic. Make it specific, vivid, and surprising — not generic.
 
-━━━ CHARACTER B BLUEPRINT (lock across ALL Speaker B image prompts) ━━━
-- Age: ${charB.age}
-- Ethnicity: ${charB.ethnicity}
-- Build: ${charB.build}
-- Hair: ${charB.hair}
-- Face: ${charB.face}
-- Outfit: ${charB.outfit} ← EXACT colors. NEVER blue, grey, scrubs, or boring.
-${scenarioHint ? `\nSCENARIO — base the ENTIRE video STRICTLY on this exact situation:\n${scenarioHint}` : ''}
+━━━ FORMAT: DIALOGUE BETWEEN TWO PEOPLE ━━━
+Speaker A and Speaker B talk to each other. They REACT to each other — not co-narrate.
+- A says something → B responds DIRECTLY to what A just said
+- B makes a point → A reacts TO that specific thing
+- They interrupt, clown on each other, make things worse for each other
+- Feels like two real people in a voice note or on the phone, not a scripted show
 
-━━━ WORD COUNT — HARD LIMIT ━━━
-${duration}-second video. 2.5 words/sec = EXACTLY ${targetWords} words total (hook + all segments + callToAction).
-- EVERY segment: ${minWordsPerSeg}–${maxWordsPerSeg} words. Not one word more. Dialogue is punchy — short reactive lines.
-- EXACTLY ${minSegments} segments. Not more, not fewer.
-- Count each segment before writing the next. If a segment exceeds ${maxWordsPerSeg} words, cut it down before moving on.
-- DO NOT write long monologue-style segments. Each line = one punchy reaction. Short. Fast. Done.
+━━━ WORD COUNT ━━━
+Total: ${targetWords} words (hook + all segments + callToAction combined)
+Segments: exactly ${minSegments}, each ${minWordsPerSeg}–${maxWordsPerSeg} words
+Dialogue is punchy. Short reactive lines. Count before you write the next one.
 
-━━━ DIALOGUE RULES — THEY REACT TO EACH OTHER, NOT CO-NARRATE ━━━
-- Speakers STRICTLY ALTERNATE: A, B, A, B... No speaker goes twice in a row.
-- Speaker A: tells what happened from their POV — chaotic, self-roasting, emotionally unhinged.
-- Speaker B: DIRECTLY REACTS to A's last line — clowns on it, questions it, makes it worse. B never adds new story info unprompted; B RESPONDS to whatever A just said.
-- Every B line must make sense as a direct reply to the A line immediately before it.
-- Every A line after the first must react to what B just said back.
-- Think: two people arguing/reacting in a group chat voice note, not two people taking turns telling a story.
+━━━ TTS DELIVERY ━━━
+- Use *single asterisks* on 1–2 punch words per segment
+- Add [laugh], [sigh], [breathe], [cough], [clear_throat] vocalizations — 3 to 5 spread across both speakers
+- Use ... for pauses that let things sink in
+- Numbers as words: "fifteen hundred dollars" not "$1,500"
 
-EXAMPLE OF CORRECT DIALOGUE:
-A: "i walked into that meeting with my chest out like i owned the place"
-B: "nigga you were SHAKING when you walked in, i saw you"
-A: "i was not shaking i just had cold air—"
-B: "you had cold air?? bro it was eighty degrees outside"
-
-BANNED: having B just continue A's story as if A never spoke. BANNED: co-narration. BANNED: "here's the part nobody talks about", "and then it got worse", "little did I know", "you won't believe", "but wait".
-
-- Hook: Speaker A only. FIRST 3 WORDS ALL CAPS.
-- ONE ridiculous situation. NO scene jumps.
-- Arc: setup → escalation → twist → mutual self-roast payoff.
-
-━━━ VOICE RULES — RAW AS FUCK ━━━
-- lowercase i every time.
-- Broken grammar when it flows hood (ain't, finna, dont, etc.).
-- Hyper-specific: name dumb details ("that dusty-ass corner store with the broken freezer light", "my cousin's raggedy Camry with the mismatched rims").
-- Self-deprecation on steroids: roast each other every few lines ("your clown ass", "this idiot right here").
-- Sounds like a real conversation between two people who've been through some shit together.
-
-━━━ INWORLD TTS DELIVERY — MAKE IT SOUND ALIVE ━━━
-1. EMPHASIS: single asterisks on 1–2 punch words per segment. Never double.
-2. VOCALIZATIONS (use 3–5 total, spread between both speakers): [laugh] ironic wheeze, [sigh] defeated af, [breathe] building dread, [cough] awkward choke, [clear_throat] nervous stall.
-3. ... for dramatic/awkward pauses.
-4. Numbers spoken naturally: "two thousand dollars" not "$2k".
-
-━━━ OUTPUT FORMAT — JSON ONLY ━━━
+━━━ OUTPUT: JSON ONLY ━━━
 {
-  "title": "Short chaotic reference title",
-  "hook": "FIRST THREE WORDS CAPS. rest of chaotic hook. (always Speaker A)",
-  "characterDescriptionA": "One locked hyper-specific sentence combining ALL Character A blueprint traits. Vivid & aggressive.",
-  "characterDescriptionB": "One locked hyper-specific sentence combining ALL Character B blueprint traits. Vivid & aggressive.",
+  "title": "short punchy title",
+  "hook": "FIRST THREE WORDS ALL CAPS then the rest of the hook — always Speaker A",
+  "characterDescriptionA": "one vivid sentence describing Character A: age, look, energy, outfit — be specific and original",
+  "characterDescriptionB": "one vivid sentence describing Character B: age, look, energy, outfit — be specific and original",
   "segments": [
     {
       "speaker": "A",
-      "text": "Speaker A line — punchy, ${minWordsPerSeg}–${maxWordsPerSeg} words, TTS flair.",
-      "imagePrompt": "EXACT characterDescriptionA sentence word-for-word + vivid chaotic scene matching narration + ${style} at the END.",
+      "text": "what A says — ${minWordsPerSeg} to ${maxWordsPerSeg} words",
+      "imagePrompt": "start with characterDescriptionA word for word, then describe the scene matching the narration, end with: ${style || 'cinematic photorealistic'}",
       "duration": estimated_seconds
     },
     {
       "speaker": "B",
-      "text": "Speaker B line — punchy, ${minWordsPerSeg}–${maxWordsPerSeg} words, TTS flair.",
-      "imagePrompt": "EXACT characterDescriptionB sentence word-for-word + vivid chaotic scene matching narration + ${style} at the END.",
+      "text": "B's direct reaction to what A just said — ${minWordsPerSeg} to ${maxWordsPerSeg} words",
+      "imagePrompt": "start with characterDescriptionB word for word, then describe the scene matching the narration, end with: ${style || 'cinematic photorealistic'}",
       "duration": estimated_seconds
     }
   ],
   "callToAction": "${customCTA || 'go to reelswave.com'}",
-  "hashtags": ["relatable", "funny", "niche-relevant"]
+  "hashtags": ["3 to 5 relevant tags"]
 }
 
-━━━ IMAGE PROMPT RULES ━━━
-1. Speaker A segments: imagePrompt MUST start with exact characterDescriptionA word-for-word.
-2. Speaker B segments: imagePrompt MUST start with exact characterDescriptionB word-for-word.
-3. APPEND "${style}" to the very end of EVERY imagePrompt — no exceptions.
-4. Scene matches narration — absurd, detailed, cinematic.
-5. NO text, subtitles, watermarks, or words baked into the image.
-
-Two people, one disaster, zero chill. Make it hilariously unhinged and word-count perfect. Go.`;
+No text, watermarks, or subtitles in image prompts. Alternate speakers A/B/A/B strictly.`;
 
   const systemPersona = buildPersona(niche, tone);
 
@@ -356,8 +123,7 @@ Two people, one disaster, zero chill. Make it hilariously unhinged and word-coun
 
   let scriptText = response.choices[0].message.content;
 
-  // Hermes/some models prepend text like "Here is the JSON:" before the actual JSON
-  // Strip everything before the first { and after the last }
+  // Strip any text Hermes prepends before the JSON
   const jsonStart = scriptText.indexOf('{');
   const jsonEnd = scriptText.lastIndexOf('}');
   if (jsonStart !== -1 && jsonEnd !== -1) {
@@ -371,8 +137,6 @@ Two people, one disaster, zero chill. Make it hilariously unhinged and word-coun
     throw new Error(`Script JSON unparseable: ${parseErr.message}`);
   }
 
-  const countWords = (t = '') => (t.match(/\S+/g) || []).length;
-
   // Combine all text for voiceover
   const fullScript = [
     script.hook,
@@ -382,7 +146,7 @@ Two people, one disaster, zero chill. Make it hilariously unhinged and word-coun
 
   const provider = (process.env.VOICE_PROVIDER || 'elevenlabs').toLowerCase();
 
-  // Strip emojis always
+  // Strip emojis
   const noEmoji = fullScript
     .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
     .replace(/_/g, '')
@@ -392,20 +156,17 @@ Two people, one disaster, zero chill. Make it hilariously unhinged and word-coun
 
   let cleanScript;
   if (provider === 'inworld') {
-    // Inworld supports *emphasis* and [vocalizations] — keep them
-    // Double asterisks would be read aloud — strip those, keep single
     cleanScript = noEmoji
-      .replace(/\*\*([^*]+)\*\*/g, '$1') // strip **bold** markdown, keep text
-      .replace(/[-—]/g, ',')             // dashes → comma pause
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/[-—]/g, ',')
       .replace(/\s+/g, ' ')
       .trim();
   } else {
-    // ElevenLabs / OpenAI — strip all markup and vocalizations
     cleanScript = noEmoji
-      .replace(/\*\*/g, '')              // strip bold markdown
-      .replace(/\*([^*]+)\*/g, '$1')     // strip *emphasis* markers
-      .replace(/\[[^\]]+\]/g, '')        // strip [laugh], [sigh] etc.
-      .replace(/\.{2,}/g, ',')           // ellipses → comma pause
+      .replace(/\*\*/g, '')
+      .replace(/\*([^*]+)\*/g, '$1')
+      .replace(/\[[^\]]+\]/g, '')
+      .replace(/\.{2,}/g, ',')
       .replace(/[-—]/g, ',')
       .replace(/\s+/g, ' ')
       .trim();
@@ -416,6 +177,6 @@ Two people, one disaster, zero chill. Make it hilariously unhinged and word-coun
     fullScript,
     cleanScript,
     wordCount: fullScript.split(' ').length,
-    estimatedDuration: Math.round(fullScript.split(' ').length / 2.5) // ~2.5 words/sec
+    estimatedDuration: Math.round(fullScript.split(' ').length / 2.5)
   };
 }
