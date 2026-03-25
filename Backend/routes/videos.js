@@ -4,7 +4,7 @@ import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { authMiddleware, supabase } from '../middleware/auth.js';
 import { generateScript } from '../services/scriptGenerator.js';
-import { generateVoiceover, getVoices, generateInworldPreview } from '../services/voiceGenerator.js';
+import { generateVoiceover, generateDialogueVoiceover, getVoices, generateInworldPreview } from '../services/voiceGenerator.js';
 import { fetchStockFootage } from '../services/stockFetcher.js';
 import { assembleVideo } from '../services/videoAssembler.js';
 import { getConnectUrl, getConnectedProfiles, createLateProfile, disconnectAccount } from '../services/lateService.js';
@@ -21,7 +21,7 @@ if (!fs.existsSync(OUTPUT_DIR)) {
 // In-memory job tracking
 const jobs = new Map();
 
-const processJob = async (jobId, userId, topic, niche, tone, duration, voiceId, style, providedScript, profile) => {
+const processJob = async (jobId, userId, topic, niche, tone, duration, voiceId, voiceIdB, style, providedScript, profile) => {
     // Define job-specific output directory
     const jobDir = path.join(OUTPUT_DIR, jobId);
     if (!fs.existsSync(jobDir)) {
@@ -37,15 +37,10 @@ const processJob = async (jobId, userId, topic, niche, tone, duration, voiceId, 
 
         // Step 2: Generate Voiceover
         jobs.set(jobId, { ...jobs.get(jobId), status: 'generating_voiceover', progress: 30 });
-        console.log(`[Job ${jobId}] Generating voiceover using clean script...`);
-        const { audioPath, timestamps } = await generateVoiceover({
-            text: script.cleanScript,
-            voiceId,
-            outputDir: OUTPUT_DIR,
-            jobId,
-            niche,
-            tone
-        });
+        console.log(`[Job ${jobId}] Generating voiceover (${voiceIdB ? 'dialogue' : 'monologue'})...`);
+        const { audioPath, timestamps } = voiceIdB
+            ? await generateDialogueVoiceover({ script, voiceIdA: voiceId, voiceIdB, outputDir: OUTPUT_DIR, jobId })
+            : await generateVoiceover({ text: script.cleanScript, voiceId, outputDir: OUTPUT_DIR, jobId, niche, tone });
         console.log(`[Job ${jobId}] Voiceover complete: ${audioPath}`);
 
         // Step 3: Fetch stock footage
@@ -204,7 +199,7 @@ router.post('/generate', authMiddleware, async (req, res) => {
     const userId = req.user.id;
 
     try {
-        const { topic, niche, tone, duration, voiceId, style, script: providedScript } = req.body;
+        const { topic, niche, tone, duration, voiceId, voiceIdB, style, script: providedScript } = req.body;
 
         if (!topic || !niche) {
             return res.status(400).json({ error: 'Topic and niche are required' });
@@ -235,7 +230,7 @@ router.post('/generate', authMiddleware, async (req, res) => {
         });
 
         // Start processing (semaphore handles concurrency limit)
-        processJob(jobId, userId, topic, niche, tone, duration, voiceId, style, providedScript, profile)
+        processJob(jobId, userId, topic, niche, tone, duration, voiceId, voiceIdB, style, providedScript, profile)
             .catch(err => console.error(`Job ${jobId} failed:`, err.message));
 
         // Return job ID immediately

@@ -59,6 +59,7 @@ function Create({ session }) {
     const [tone, setTone] = useState('energetic');
     const [duration, setDuration] = useState(75);
     const [voiceId, setVoiceId] = useState('');
+    const [voiceIdB, setVoiceIdB] = useState('');
     // Generation state
     const [generating, setGenerating] = useState(false);
     const [jobId, setJobId] = useState(null);
@@ -122,6 +123,7 @@ function Create({ session }) {
                     tone,
                     duration,
                     voiceId,
+                    voiceIdB: voiceIdB || undefined,
                     style: selectedStyleDetails
                 })
             });
@@ -290,11 +292,20 @@ function Create({ session }) {
                             </div>
 
                             <div className="form-group">
-                                <label>Voice</label>
+                                <label>Voice A — Speaker 1</label>
                                 <VoicePicker
                                     voices={voices}
                                     value={voiceId}
                                     onChange={setVoiceId}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label>Voice B — Speaker 2 <span style={{ opacity: 0.5, fontWeight: 400 }}>(optional — enables dialogue mode)</span></label>
+                                <VoicePicker
+                                    voices={voices}
+                                    value={voiceIdB}
+                                    onChange={setVoiceIdB}
                                 />
                             </div>
 

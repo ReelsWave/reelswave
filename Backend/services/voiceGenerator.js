@@ -1,9 +1,14 @@
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
+import { spawn } from 'child_process';
 import dotenv from 'dotenv';
 import OpenAI from 'openai';
 dotenv.config();
+
+// ffmpeg binary path (same detection as videoAssembler)
+const _ffmpegCandidates = ['/usr/bin/ffmpeg', '/usr/local/bin/ffmpeg'];
+const FFMPEG_BIN = _ffmpegCandidates.find(p => fs.existsSync(p)) || 'ffmpeg';
 
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1';
 const INWORLD_TTS_URL   = 'https://api.inworld.ai/tts/v1/voice';
@@ -276,6 +281,75 @@ async function generateVoiceoverOpenAI({ text, outputDir, jobId, niche, tone }) 
 export async function generateInworldPreview(voiceId) {
     const sampleText = `Hey! I'm ${voiceId}. I'm ready to bring your content to life.`;
     return callInworldTTS(sampleText, voiceId);
+}
+
+// ─── Dialogue voiceover ───────────────────────────────────────────────────────
+// Generates audio for each segment separately with the correct voice (A or B),
+// concatenates them into one audio file, then runs Whisper for timestamps.
+
+function cleanSegmentForInworld(text = '') {
+    return text
+        .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
+        .replace(/_/g, '')
+        .replace(/\*\*([^*]+)\*\*/g, '$1') // strip **bold**, keep text
+        .replace(/[-—]/g, ',')
+        .replace(/[\n\r]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+export async function generateDialogueVoiceover({ script, voiceIdA, voiceIdB, outputDir, jobId }) {
+    const voiceA = voiceIdA || INWORLD_DEFAULT_VOICE;
+    const voiceB = voiceIdB || voiceA; // fall back to same voice if B not provided
+
+    // Build ordered list of all spoken pieces with their speaker
+    const pieces = [
+        { text: script.hook, speaker: 'A' },
+        ...script.segments.map(s => ({ text: s.text, speaker: s.speaker || 'A' })),
+        { text: script.callToAction, speaker: 'A' },
+    ];
+
+    const segmentPaths = [];
+    for (let i = 0; i < pieces.length; i++) {
+        const { text, speaker } = pieces[i];
+        const voice = speaker === 'B' ? voiceB : voiceA;
+        const cleanText = cleanSegmentForInworld(text);
+        if (!cleanText) continue;
+
+        const segPath = path.join(outputDir, `${jobId}_dlg_${i}.mp3`);
+        const audioBuffer = await callInworldTTS(cleanText, voice);
+        fs.writeFileSync(segPath, audioBuffer);
+        segmentPaths.push(segPath);
+    }
+
+    // Write ffmpeg concat list
+    const listFile = path.join(outputDir, `${jobId}_dlg_list.txt`);
+    fs.writeFileSync(listFile, segmentPaths.map(p => `file '${p.replace(/\\/g, '/')}'`).join('\n'));
+
+    // Concatenate all segment audio into one file
+    const combinedPath = path.join(outputDir, `${jobId}_voiceover.mp3`);
+    await new Promise((resolve, reject) => {
+        const proc = spawn(FFMPEG_BIN, ['-y', '-f', 'concat', '-safe', '0', '-i', listFile, '-c', 'copy', combinedPath]);
+        let stderr = '';
+        proc.stderr.on('data', d => { stderr += d.toString(); });
+        proc.on('close', code => code === 0 ? resolve() : reject(new Error(`ffmpeg concat failed (${code}): ${stderr.slice(-300)}`)));
+    });
+
+    // Get word-level timestamps via Whisper on the combined audio
+    const transcription = await openai.audio.transcriptions.create({
+        file: fs.createReadStream(combinedPath),
+        model: 'whisper-1',
+        response_format: 'verbose_json',
+        timestamp_granularities: ['word']
+    });
+
+    const timestamps = (transcription.words || []).map(w => ({
+        word: w.word,
+        start: w.start,
+        end: w.end
+    }));
+
+    return { audioPath: combinedPath, size: fs.statSync(combinedPath).size, timestamps };
 }
 
 // ─── Main entry point ─────────────────────────────────────────────────────────

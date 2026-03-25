@@ -240,9 +240,10 @@ export async function generateScript({ topic, niche, tone = 'energetic', duratio
   const customCTA = ctaMatch ? ctaMatch[1].trim() : null;
   const cleanTopic = topic.replace(/mention\s+at\s+the\s+end\s*:.+/i, '').trim();
 
-  const char = buildCharacterBlueprint();
+  const charA = buildCharacterBlueprint();
+  const charB = buildCharacterBlueprint();
 
-  const prompt = `Create a ${duration}-second faceless video script.
+  const prompt = `Create a ${duration}-second faceless video DIALOGUE script — two speakers going back and forth.
 
 TOPIC: ${cleanTopic}
 NICHE: ${niche}
@@ -250,67 +251,86 @@ TONE: ${tone}
 VISUAL_STYLE_PROMPT: ${style}
 ${customCTA ? `CALL TO ACTION — use this EXACT text as the callToAction field: "${customCTA}"` : ''}
 
-MANDATORY CHARACTER BLUEPRINT (lock this exact character across EVERY image & story reference):
-- Age: ${char.age}
-- Ethnicity: ${char.ethnicity}
-- Build: ${char.build}
-- Hair: ${char.hair}
-- Face: ${char.face}
-- Outfit: ${char.outfit} ← USE THIS EXACT COLOR COMBO & DESCRIPTION. NEVER default to blue, grey, scrubs, or anything lame.
+━━━ CHARACTER A BLUEPRINT (lock across ALL Speaker A image prompts) ━━━
+- Age: ${charA.age}
+- Ethnicity: ${charA.ethnicity}
+- Build: ${charA.build}
+- Hair: ${charA.hair}
+- Face: ${charA.face}
+- Outfit: ${charA.outfit} ← EXACT colors. NEVER blue, grey, scrubs, or boring.
+
+━━━ CHARACTER B BLUEPRINT (lock across ALL Speaker B image prompts) ━━━
+- Age: ${charB.age}
+- Ethnicity: ${charB.ethnicity}
+- Build: ${charB.build}
+- Hair: ${charB.hair}
+- Face: ${charB.face}
+- Outfit: ${charB.outfit} ← EXACT colors. NEVER blue, grey, scrubs, or boring.
 ${scenarioHint ? `\nSCENARIO — base the ENTIRE video STRICTLY on this exact situation:\n${scenarioHint}` : ''}
 
 ━━━ WORD COUNT — NON-NEGOTIABLE ━━━
-This is a ${duration}-second video. Speech runs at 2.5 words/sec → the TOTAL word count across hook + ALL segment texts + callToAction MUST be between ${targetWords - 5} and ${targetWords + 10} words.
-- Count every word before you output. If you're short, ADD more chaotic detail to existing segments. Never stop early.
-- Each of the ${minSegments} segments must have ${minWordsPerSeg}–${maxWordsPerSeg} words. No segment gets to be lazy.
-- DO NOT output fewer segments than ${minSegments}. DO NOT combine segments. Hit the count or keep writing.
+This is a ${duration}-second video. Speech runs at 2.5 words/sec → TOTAL words across hook + ALL segment texts + callToAction MUST be between ${targetWords - 5} and ${targetWords + 10}.
+- Count every word before outputting. If short, ADD more chaotic dialogue lines. Never stop early.
+- Each segment: ${minWordsPerSeg}–${maxWordsPerSeg} words. Dialogue is punchy — short lines, fast exchanges.
+- DO NOT output fewer than ${minSegments} segments. Hit the count or keep writing.
 
-━━━ STORY RULES — ONE CONTINUOUS CHAOTIC FEVER DREAM ━━━
-- ONE single ridiculous situation. ONE character (you/the narrator). ONE escalating disaster arc. NO scene jumps, NO unrelated tangents.
-- Hook: FIRST 3 WORDS ALL CAPS, teases the incoming trainwreck without spoiling the punchline/twist.
-- Segments 1–${Math.ceil(minSegments * 0.3)}: set the stupid scene + bad decisions piling up.
-- Segments ${Math.ceil(minSegments * 0.3)}–${Math.ceil(minSegments * 0.7)}: stakes skyrocket with increasingly dumb choices & hilarious self-sabotage.
-- Around segment ${Math.ceil(minSegments * 0.7)}: massive twist/reveal that flips the whole stupid story on its head — make it absurd & gut-bustingly funny.
-- Final 2–3 segments: short, brutal, self-roasting conclusion + payoff.
-- BANNED PHRASES (auto-fail if any appear): "here's the part nobody talks about", "and then it got worse", "I had no idea what I just walked into", "here's where it gets interesting", "but wait", "little did I know", "you won't believe what happened next". Zero clickbait crutches.
+━━━ DIALOGUE RULES — TWO PEOPLE, ONE CHAOTIC STORY ━━━
+- Speakers STRICTLY ALTERNATE: A, B, A, B, A, B... No speaker goes twice in a row.
+- Speaker A: the storyteller/reactor — sets up the disaster, reacts with chaos, self-roasts hard.
+- Speaker B: the breakdown voice — clowns on A, adds context, escalates the stupidity, makes it worse.
+- Hook: always Speaker A. Short punchy opener, FIRST 3 WORDS ALL CAPS.
+- ONE continuous ridiculous situation that escalates. NO scene jumps. NO topic switches.
+- Segments 1–${Math.ceil(minSegments * 0.3)}: A sets up the disaster, B questions the dumb decisions.
+- Segments ${Math.ceil(minSegments * 0.3)}–${Math.ceil(minSegments * 0.7)}: stakes skyrocket, both characters react to escalating chaos.
+- Around segment ${Math.ceil(minSegments * 0.7)}: massive twist — B calls out what actually happened, A loses it.
+- Final 2–3 segments: brutal mutual self-roasting + payoff punchline.
+- BANNED PHRASES: "here's the part nobody talks about", "and then it got worse", "little did I know", "you won't believe", "but wait", "here's where it gets interesting". Zero clickbait crutches.
 
 ━━━ VOICE RULES — RAW AS FUCK ━━━
 - lowercase i every time.
 - Broken grammar when it flows hood (ain't, finna, dont, etc.).
-- Hyper-specific over vague: name dumb details ("that dusty-ass corner store with the broken freezer light", "my cousin's raggedy Camry with the mismatched rims").
-- Self-deprecation on steroids: roast yourself harder every few lines ("my goofy ass", "this idiot right here", "why tf did i think that was a flex").
-- First-person lived experience — you're telling this like it JUST happened and you're still mad/embarrassed/hilarious about it.
+- Hyper-specific: name dumb details ("that dusty-ass corner store with the broken freezer light", "my cousin's raggedy Camry with the mismatched rims").
+- Self-deprecation on steroids: roast each other every few lines ("your clown ass", "this idiot right here").
+- Sounds like a real conversation between two people who've been through some shit together.
 
 ━━━ INWORLD TTS DELIVERY — MAKE IT SOUND ALIVE ━━━
 1. EMPHASIS: single asterisks on 1–2 punch words per segment. Never double.
-2. VOCALIZATIONS (use 3–5 total): [laugh] for ironic wheeze, [sigh] for defeated af, [breathe] for building dread, [cough] awkward choke, [clear_throat] nervous stall, [yawn] fake unbothered.
-3. ... for dramatic/awkward pauses that let the stupidity sink in.
-4. Numbers spoken naturally: "two thousand dollars" not "$2k", "fifteen" not "15".
+2. VOCALIZATIONS (use 3–5 total, spread between both speakers): [laugh] ironic wheeze, [sigh] defeated af, [breathe] building dread, [cough] awkward choke, [clear_throat] nervous stall.
+3. ... for dramatic/awkward pauses.
+4. Numbers spoken naturally: "two thousand dollars" not "$2k".
 
 ━━━ OUTPUT FORMAT — JSON ONLY ━━━
 {
-  "title": "Short chaotic reference title that slaps",
-  "hook": "FIRST THREE WORDS ALL CAPS. rest of the chaotic teaser hook.",
-  "characterDescription": "One locked, hyper-specific sentence combining ALL blueprint traits exactly. Make it vivid & aggressive.",
+  "title": "Short chaotic reference title",
+  "hook": "FIRST THREE WORDS CAPS. rest of chaotic hook. (always Speaker A)",
+  "characterDescriptionA": "One locked hyper-specific sentence combining ALL Character A blueprint traits. Vivid & aggressive.",
+  "characterDescriptionB": "One locked hyper-specific sentence combining ALL Character B blueprint traits. Vivid & aggressive.",
   "segments": [
     {
-      "text": "Pure narration text. No hook/CTA here. Hit word range. Add TTS flair.",
-      "imagePrompt": "EXACT characterDescription prepended word-for-word + vivid chaotic scene matching narration + ${style} appended at the VERY END.",
+      "speaker": "A",
+      "text": "Speaker A line — punchy, ${minWordsPerSeg}–${maxWordsPerSeg} words, TTS flair.",
+      "imagePrompt": "EXACT characterDescriptionA sentence word-for-word + vivid chaotic scene matching narration + ${style} at the END.",
+      "duration": estimated_seconds
+    },
+    {
+      "speaker": "B",
+      "text": "Speaker B line — punchy, ${minWordsPerSeg}–${maxWordsPerSeg} words, TTS flair.",
+      "imagePrompt": "EXACT characterDescriptionB sentence word-for-word + vivid chaotic scene matching narration + ${style} at the END.",
       "duration": estimated_seconds
     }
   ],
   "callToAction": "${customCTA || 'go to reelswave.com'}",
-  "hashtags": ["hood", "funny", "relatable", "niche-relevant"]
+  "hashtags": ["relatable", "funny", "niche-relevant"]
 }
 
-━━━ IMAGE PROMPT RULES — NO FUCKUPS ALLOWED ━━━
-1. EVERY imagePrompt MUST start with the exact full characterDescription sentence.
-2. APPEND "${style}" to the very end of every imagePrompt — no exceptions.
-3. Hyper-explicit physical traits every time — describe the character aggressively.
-4. Scene must match narration — absurd, detailed, cinematic.
-5. NO baked-in text, subtitles, titles, watermarks, or words in the image.
+━━━ IMAGE PROMPT RULES ━━━
+1. Speaker A segments: imagePrompt MUST start with exact characterDescriptionA word-for-word.
+2. Speaker B segments: imagePrompt MUST start with exact characterDescriptionB word-for-word.
+3. APPEND "${style}" to the very end of EVERY imagePrompt — no exceptions.
+4. Scene matches narration — absurd, detailed, cinematic.
+5. NO text, subtitles, watermarks, or words baked into the image.
 
-Make this shit hilariously unhinged, painfully relatable in its stupidity, and word-count perfect. Go.`;
+Two people, one disaster, zero chill. Make it hilariously unhinged and word-count perfect. Go.`;
 
   const systemPersona = buildPersona(niche, tone);
 
