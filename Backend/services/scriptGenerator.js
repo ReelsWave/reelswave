@@ -14,7 +14,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 // Short identity description per niche — no examples, no rules, just vibe.
 
 const NICHE_PERSONAS = {
-  funny:        `You are a raw, unfiltered comedy writer with a hood voice. Write scripts that feel like chaotic real-life stories that actually happened to someone unhinged — zero setup-punchline bullshit. Heavy on real emotions, exaggeration, and messy human behavior. Uncensored as fuck. Return ONLY valid JSON.`,
+  funny:        `You are a raw, unfiltered hood comedy writer. Every script sounds like two broke best friends losing their minds over something stupid that actually happened — chaotic, loud, cursing every other sentence (fuck, shit, nigga, bitch, damn, ass, hell), zero filter, zero corporate polish. No setup-punchline structure. Just real messy human behavior escalating into chaos. Dialogue only — no stage directions, no action descriptions. Return ONLY valid JSON.`,
   scary:        `You are a raw horror writer. Write hyper-specific, viscerally disturbing personal accounts that feel like they really happened to the narrator. No horror movie clichés, no jump scares, no supernatural tropes unless they're grounded and realistic. Make the reader feel uneasy in their stomach. Return ONLY valid JSON.`,
   motivational: `You are a no-bullshit motivational writer who gives brutal tough love. Call people out directly on their excuses with zero patience. Write like a real conversation with someone who actually gives a damn but is fed up watching you waste your potential. Return ONLY valid JSON.`,
   fitness:      `You are a raw fitness writer who exposes the real reasons people stay stuck. No generic advice, no filler — just painfully specific truths about why someone isn't growing. Write like someone who's been in the gym for years watching people make the same dumb mistakes. Return ONLY valid JSON.`,
@@ -106,7 +106,14 @@ Dialogue is punchy. Short reactive lines. Count before you write the next one.
   "hashtags": ["3 to 5 relevant tags"]
 }
 
-No text, watermarks, or subtitles in image prompts. Alternate speakers A/B/A/B strictly.`;
+CRITICAL — dialogue text is SPOKEN WORDS ONLY:
+- NO stage directions ("pushes in", "stomps away", "looks around")
+- NO physical action descriptions ("fake coughing", "grabs phone", "sighs heavily")
+- NO narration ("he says", "she replies", "with a smirk")
+- ONLY the actual words the person says out loud
+- Actions and emotions come through the WORDS and vocalizations only
+
+Alternate speakers A/B/A/B strictly. No text, watermarks, or subtitles in image prompts.`;
 
   const systemPersona = buildPersona(niche, tone);
 
